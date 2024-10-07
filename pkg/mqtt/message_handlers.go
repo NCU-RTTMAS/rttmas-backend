@@ -38,7 +38,8 @@ func messageHandler(client mqtt.Client, msg mqtt.Message) {
 	switch reportType {
 	case "user-report":
 		HandleUserLocationReport(payload, reporterUID)
-		break
+	case "plate-report":
+		HandlePlateReport(payload, reporterUID)
 	}
 }
 
@@ -49,5 +50,14 @@ func HandleUserLocationReport(payload map[string]interface{}, reporterUID string
 	// heading := payload["heading"].(float64)
 	// speed := payload["speed"].(float64)
 
-	rttmas_binding.RTTMAS_InsertUserLocationReport(reportTime, latitude, longitude, reporterUID)
+	rttmas_binding.RTTMAS_OnUserLocationReport(reportTime, latitude, longitude, reporterUID)
+}
+
+func HandlePlateReport(payload map[string]interface{}, reporterUID string) {
+	reportTime := int64(payload["report_time"].(float64))
+	latitude := payload["lat"].(float64)
+	longitude := payload["lon"].(float64)
+	reportedPlate := payload["reported_plate"].(string)
+
+	rttmas_binding.RTTMAS_OnPlateReport(reportTime, latitude, longitude, reportedPlate, reporterUID)
 }
