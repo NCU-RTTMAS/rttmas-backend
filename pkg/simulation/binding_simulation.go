@@ -101,31 +101,20 @@ func playbackTimesteps(timesteps []Timestep, geoSearchRadius int) {
 
 	for _, timestep := range timesteps {
 
-		// Iterate over vehicle true locations
-		for _, location := range timestep.VehicleTrueLocations {
-			rkey := fmt.Sprintf("v_locations:%s", timestep.TimeSeconds)
-			rttmas_db.RedisExecuteLuaScript("geoadd", rkey, location.Lon, location.Lat, location.VID)
-		}
-
 		// Iterate over user location reports
 		for _, report := range timestep.UserLocationReports {
 			rkey := fmt.Sprintf("u_locations:%s", timestep.TimeSeconds)
 			rttmas_db.RedisExecuteLuaScript("geoadd", rkey, report.Lon, report.Lat, report.UID)
+			rttmas_db.RedisExecuteLuaScript("binding/check_or_create_vid_for_uid", "nil", report.UID)
 
-			// rttmas_db.RedisExecuteLuaScript("check_or_create_vid_for_uid_geo", "nil", timestep.TimeSeconds, report.UID, report.Lon, report.Lat, rkey, 10)
-
-			// rttmas_db.RedisExecuteLuaScript("bind_uv", "nil", report.UID, report.AttachedVID)
-
-			// rttmas_db.RedisExecuteLuaScript("check_or_create_vid_for_uid", "nil", report.UID)
-
-			// rawResult, _ := rttmas_db.RedisExecuteLuaScript("get_uv_convergence", "nil", report.UID)
-			// if rawResult != nil {
-			// 	vid := rawResult.(string)
-			// 	if vid != "NULL" {
-			// 		rkeyForVID := fmt.Sprintf("v_locations:%s", timestep.TimeSeconds)
-			// 		rttmas_db.RedisExecuteLuaScript("geoadd", rkeyForVID, report.Lon, report.Lat, vid)
-			// 	}
-			// }
+			rawResult, _ := rttmas_db.RedisExecuteLuaScript("binding/get_uv_convergence", "nil", report.UID)
+			if rawResult != nil {
+				vid := rawResult.(string)
+				if vid != "NULL" {
+					rkeyForVID := fmt.Sprintf("v_locations:%s", timestep.TimeSeconds)
+					rttmas_db.RedisExecuteLuaScript("geoadd", rkeyForVID, report.Lon, report.Lat, vid)
+				}
+			}
 
 			rttmas_db.RedisExecuteLuaScript("binding/adjust_uv_score", "nil", timestep.TimeSeconds, report.UID, report.Lon, report.Lat, geoSearchRadius, 30, 50)
 		}
@@ -136,20 +125,6 @@ func playbackTimesteps(timesteps []Timestep, geoSearchRadius int) {
 			rttmas_db.RedisExecuteLuaScript("geoadd", rkey, report.Lon, report.Lat, report.PlateNumberSeen)
 
 			rttmas_db.RedisExecuteLuaScript("binding/adjust_pv_score", "nil", timestep.TimeSeconds, report.PlateNumberSeen, report.ReporterUID, report.Lon, report.Lat, geoSearchRadius, 30, 20)
-
-			// rttmas_db.RedisExecuteLuaScript("check_or_create_vid_for_plate", "nil", report.PlateNumberSeen)
-
-			// rawResult, _ := rttmas_db.RedisExecuteLuaScript("get_pv_convergence", "nil", report.PlateNumberSeen)
-			// if rawResult != nil {
-			// 	vid := rawResult.(string)
-			// 	if vid != "NULL" {
-			// 		rkeyForVID := fmt.Sprintf("v_locations:%s", timestep.TimeSeconds)
-			// 		rttmas_db.RedisExecuteLuaScript("geoadd", rkeyForVID, report.Lon, report.Lat, vid)
-			// 	}
-			// }
-
-			// fmt.Printf("  Plate Report - Reporter UID: %s, Lat: %f, Lon: %f, Plate Seen: %s, Attached VID: %s\n",
-			// 	report.ReporterUID, report.Lat, report.Lon, report.PlateNumberSeen, report.AttachedVID)
 		}
 
 		tCounter += 1
@@ -267,6 +242,64 @@ func AnalyzeVIDCreation(xrttmas *xRTTMAS) {
 	logger.Info(fmt.Sprintf("Correct: %d / %d", correctCount, totalSeenVehicleCount))
 }
 
+func AnalyzeBindingsForDynamicVIDCreation(xrttmas *xRTTMAS) {
+	allVIDs, _ := rttmas_db.RedisExecuteLuaScript("binding/analyze_all_vid_bindings", "nil")
+	if allVIDs == nil {
+		logger.Debug("None")
+	}
+
+	predictions := make(map[string]string)
+
+	// Extract predictions from DB
+	for _, _vid := range allVIDs.([]interface{}) {
+		VID := _vid.(string)
+		logger.Info(VID)
+
+		// Plate Prediction
+		rawResult1, _ := rttmas_db.RedisExecuteLuaScript("binding/get_most_probable_plate_for_vid", "nil", VID)
+		resultArr1 := rawResult1.([]interface{})
+		if len(resultArr1) == 0 {
+			continue
+		}
+		predictedPlate := resultArr1[0].(string)
+		predictedScore, _ := strconv.ParseFloat(resultArr1[1].(string), 64)
+		if predictedScore < PV_BIND_SCORE_THRESHOLD {
+			predictedPlate = "NULL"
+		}
+
+		// UID Prediction
+		rawResult2, _ := rttmas_db.RedisExecuteLuaScript("binding/get_most_probable_uid_for_vid", "nil", VID)
+		resultArr2 := rawResult2.([]interface{})
+		if len(resultArr2) == 0 {
+			continue
+		}
+		predictedUID := resultArr2[0].(string)
+
+		predictions[predictedUID] = predictedPlate
+	}
+
+	totalCount := len(predictions)
+	correctCount := 0
+
+	// Compare predictions with facts
+	for _, fact := range xrttmas.PVBindingFacts.VehicleFacts {
+		UID := strings.ReplaceAll(fact.VID, "v", "u")
+
+		predictedPlate := predictions[UID]
+
+		isMatch := predictedPlate == fact.Plate
+
+		if isMatch {
+			correctCount++
+		}
+
+		logger.Info(fmt.Sprintf("%s  ->  %s == %s  ->  %t", UID, predictedPlate, fact.Plate, isMatch))
+	}
+
+	logger.Info(fmt.Sprintf("Correct: %d / %d", correctCount, totalCount))
+	logger.Info(fmt.Sprintf("Accuracy: %.02f%%", float64(correctCount)/float64(totalCount)*100))
+}
+
 func AnalysisExperiment() {
 	// Replace with the actual path to your XML file
 	// filename := "pkg/simulation/sumo-scenarios/output_20240915_1915_taipei_nogpserror_forwardonly.xml"
@@ -286,19 +319,18 @@ func AnalysisExperiment() {
 		return
 	}
 
-	// for radius := 5; radius <= 50; radius += 5 {
-	radius := 45
-	logger.Info(fmt.Sprintf("Radius: %d", radius))
+	analysisOnly := false
 
-	rttmas_db.GetRedis().FlushAll(context.Background())
+	if !analysisOnly {
+		radius := 45
+		logger.Info(fmt.Sprintf("Radius: %d", radius))
 
-	rttmas_db.RedisExecuteLuaScript("create_indices", "nil")
+		rttmas_db.GetRedis().FlushAll(context.TODO())
 
-	playbackTimesteps(xrttmas.Simulation.Timesteps, radius)
+		rttmas_db.RedisExecuteLuaScript("create_indices", "nil")
 
-	// AnalyzeUVBindingAccuracy(xrttmas)
-	AnalyzePVBindingAccuracy(xrttmas)
-	// }
+		playbackTimesteps(xrttmas.Simulation.Timesteps, radius)
+	}
 
-	// AnalyzeVIDCreation(xrttmas)
+	AnalyzeBindingsForDynamicVIDCreation(xrttmas)
 }

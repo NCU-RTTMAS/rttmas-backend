@@ -3,8 +3,8 @@
 
 /pkg/simulation/sumo-scenarios/*
 /pkg/simulation/sumo-scenarios
+/lua/_binding
 
 .env
 */*.xml
-
 

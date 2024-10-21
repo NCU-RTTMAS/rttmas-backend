@@ -1,3 +1,17 @@
+[v0.1.4] 2024/10/21
+Update: Binding algorithm accuracy improvements
+- Fix logic for achieving negative binding scores
+- Removed deterministic vehicle locations in binding_simulation.go
+
+[v0.1.3] 2024/10/21
+Feature: Added binding_simulation.go
+- Added binding simulation logic for binding analysis experiments
+
+[v0.1.2] 2024/10/07
+Feature: Added lua scripts for relationship binding
+- Added binding lua scripts
+- Updated binding go functions
+
 [v0.1.1] 2024/09/30
 Feature: MQTT, Redis, FCM, Gin clients and services
 - Added MQTT client and handler functions

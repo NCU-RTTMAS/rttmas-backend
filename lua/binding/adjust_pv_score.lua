@@ -114,16 +114,29 @@ for Index, possibleVID in pairs(surroundingVehicles) do
 end
 
 -- Get reporter's VID
-local reporterVIDs = redis.call(
-    "FT.SEARCH", "uv_binding_index",
-    string.format("@uid:%s", reporterUID), "NOCONTENT"
-)
-for Index, Value in pairs(reporterVIDs) do
-    if Index > 1 then
-        local VID = tostring(Value):gsub("uv_bindings:", "")
-        local bindingKeyForReporter = string.format("pv_bindings:%s", VID)
-        redis.call("ZINCRBY", bindingKeyForReporter, -100, plateNumber)
-    end
+-- local reporterVIDs = redis.call(
+--     "FT.SEARCH", "uv_convergence_index",
+--     string.format("@uid:%s", reporterUID), "NOCONTENT"
+-- )
+-- for Index, Value in pairs(reporterVIDs) do
+--     if Index > 1 then
+--         local VID = tostring(Value):gsub("uv_bindings:", "")
+--         local bindingKeyForReporter = string.format("pv_bindings:%s", VID)
+--         redis.call("ZINCRBY", bindingKeyForReporter, -100, plateNumber)
+--     end
+-- end
+
+-- The original implementation (425/437 accuracy)
+-- local reporterVID = tostring(reporterUID):gsub("u__", "v__")
+-- local bindingKeyForReporter = string.format("pv_bindings:%s", reporterVID)
+-- redis.call("ZINCRBY", bindingKeyForReporter, -100, plateNumber)
+
+-- Use uv_convergence implementation
+local reporterVID = redis.call("HGET", string.format("uv_convergence:%s", reporterUID), "vid")
+local reporterUVConvergenceCount = tonumber(redis.call("HGET", string.format("uv_convergence:%s", reporterUID), "count"))
+if reporterUVConvergenceCount ~= nil and reporterUVConvergenceCount >= convergenceThreshold then
+    local bindingKeyForReporter = string.format("pv_bindings:%s", reporterVID)
+    redis.call("ZINCRBY", bindingKeyForReporter, -100, plateNumber)
 end
 
 local mostProbableVID = surroundingVehicles[1]
