@@ -13,5 +13,5 @@ var RTTMAS_PV_BINDING_PATH_SIMILARITY_WINDOW_IN_SECONDS = 30
 var RTTMAS_PV_BINDING_CONVERGENCE_THRESHOLD = 50
 
 func RTTMAS_InitializeBindingModule() {
-	rttmas_db.RedisExecuteLuaScript("create_indices", "nil")
+	rttmas_db.RedisExecuteLuaScript("create_indices", []string{"nil"})
 }

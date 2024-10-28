@@ -3,3 +3,4 @@
 
 .env
 */*.xml
+.DS_Store

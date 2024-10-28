@@ -20,7 +20,7 @@ func RTTMAS_AdjustPVScore(
 	reportedPlate string, reporterUID string,
 ) {
 	rttmas_db.RedisExecuteLuaScript(
-		"binding/adjust_pv_score", "nil",
+		"adjust_pv_score", []string{"nil"},
 		reportTime, reportedPlate, reporterUID,
 		longitude, latitude,
 		RTTMAS_PV_BINDING_GEO_SEARCH_RADIUS,
