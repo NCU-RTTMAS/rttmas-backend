@@ -11,7 +11,7 @@ import (
 	rttmas_db "rttmas-backend/pkg/database"
 	rttmas_fcm "rttmas-backend/pkg/fcm"
 	rttmas_mqtt "rttmas-backend/pkg/mqtt"
-	rttmas_simulation "rttmas-backend/pkg/simulation"
+	// rttmas_simulation "rttmas-backend/pkg/simulation"
 	rttmas_web "rttmas-backend/pkg/web"
 
 	"rttmas-backend/pkg/utils/logger"
@@ -80,7 +80,7 @@ func main() {
 	initializeRTTMAS()
 	go rttmas_analysis.StartAnalysisModule()
 
-	// initializeWebserver()
+	initializeWebserver()
 
-	rttmas_simulation.AnalysisExperiment()
+	// rttmas_simulation.AnalysisExperiment()
 }
