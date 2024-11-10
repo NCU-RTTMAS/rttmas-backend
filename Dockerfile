@@ -39,5 +39,7 @@ COPY ./src/lua ./lua
 # Expose the port the app runs on
 EXPOSE 8080
 
+EXPOSE 50051
+
 # Command to run the executable
 CMD ["./rttmas"]
