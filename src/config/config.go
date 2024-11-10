@@ -42,7 +42,7 @@ func InitializeConfig() {
 
 	config_items["JWT_SECRET"] = os.Getenv("JWT_SECRET")
 
-	config_items["MQTT_BROKER_URI"] = fmt.Sprintf("mqtt://%s:%s", os.Getenv("MQTT_HOST"), os.Getenv("MQTT_PORT"))
+	config_items["MQTT_BROKER_URI"] = fmt.Sprintf("%s://%s:%s", os.Getenv("MQTT_SCHEME"), os.Getenv("MQTT_HOST"), os.Getenv("MQTT_PORT"))
 	config_items["MQTT_USERNAME"] = os.Getenv("MQTT_USERNAME")
 	config_items["MQTT_PASSWORD"] = os.Getenv("MQTT_PASSWORD")
 	config_items["MQTT_QOS"] = os.Getenv("MQTT_QOS")

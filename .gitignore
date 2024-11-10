@@ -8,3 +8,7 @@
 .env
 */*.xml
 .DS_Store
+*/docker-volume-data
+/redis/data
+/dist
+/media

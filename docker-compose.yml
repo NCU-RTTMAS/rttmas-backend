@@ -1,0 +1,109 @@
+version: '3'
+
+services:
+
+  rttmas:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: rttmas
+    restart: always
+    expose:
+      - 8080
+    depends_on:
+      - rabbitmq
+      - mongodb
+    volumes:
+      - ./dist:/root/dist
+      - ./.env:/root/.env
+      - ./media:/root/media
+      - /etc/letsencrypt/:/etc/letsencrypt/
+
+  nginx:
+    image: nginx:1.16.0-alpine
+    container_name: nginx
+    restart: always
+    volumes:
+      - /etc/letsencrypt/:/etc/letsencrypt/
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    ports:
+      - "80:80"
+      - "443:443"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      - rabbitmq
+
+  rabbitmq:
+    image: rabbitmq:management
+    container_name: rabbitmq
+    restart: always
+    environment:
+      RABBITMQ_DEFAULT_USER: $MQTT_USERNAME
+      RABBITMQ_DEFAULT_PASS: $MQTT_PASSWORD
+    expose:
+      - 1883
+      - 8883
+      - 5672
+      - 15672
+    ports:
+      - "8883:8883"
+      - "15672:15672"
+    volumes:
+        - /etc/letsencrypt/:/etc/letsencrypt/
+        - ./rabbitmq/docker-volume-data/:/data/
+        - ./rabbitmq/enabled_plugins:/etc/rabbitmq/enabled_plugins
+        - ./rabbitmq/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf
+
+
+  redis:
+    image: 'redis:latest'
+    container_name: redis
+    restart: always
+    environment:
+      - ALLOW_EMPTY_PASSWORD=yes
+    ports:
+      - 6379:6379
+    volumes:
+      - ./redis/data:/data
+      - ./redis/redis.conf:/usr/local/etc/redis/redis.conf
+
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: redis-commander
+    hostname: redis-commander
+    restart: always
+    environment:
+    - REDIS_HOSTS=local:redis:6379
+    ports:
+    - "8082:8081"
+
+  mongodb:
+    image: mongo:latest
+    container_name: mongodb
+    restart: always
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: $MONGODB_USERNAME
+      MONGO_INITDB_ROOT_PASSWORD: $MONGODB_PASSWORD
+    expose:
+      - 27017
+    ports:
+      - "27017:27017"
+    volumes:
+      - ./mongodb/docker-volume-data:/data/db/
+
+  mongo-express:
+    image: mongo-express
+    container_name: mongo-express
+    restart: always
+    ports:
+      - 9081:8081
+    environment:
+      ME_CONFIG_BASICAUTH_USERNAME: $MONGODB_USERNAME
+      ME_CONFIG_BASICAUTH_PASSWORD: $MONGODB_PASSWORD
+      ME_CONFIG_MONGODB_URL: mongodb://$MONGODB_USERNAME:$MONGODB_PASSWORD@mongodb:27017/
+
+
+networks:
+  default:
+    driver: bridge
