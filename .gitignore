@@ -8,3 +8,7 @@
 .env
 */*.xml
 
+*/docker-volume-data
+/redis/data
+/dist
+/media
