@@ -9,6 +9,7 @@ import (
 	rttmas_binding "rttmas-backend/pkg/binding"
 	rttmas_db "rttmas-backend/pkg/database"
 	rttmas_fcm "rttmas-backend/pkg/fcm"
+	rttmas_grpc "rttmas-backend/pkg/grpc"
 	rttmas_mqtt "rttmas-backend/pkg/mqtt"
 	// rttmas_simulation "rttmas-backend/pkg/simulation"
 	rttmas_web "rttmas-backend/pkg/web"
@@ -68,11 +69,16 @@ func initializeFCM() {
 	rttmas_fcm.InitializeFCM()
 }
 
+func initializeGRPC() {
+	rttmas_grpc.SetupGrpc()
+}
+
 func main() {
 	initializeConfig()
 	initializeDatabase()
 	initializeFCM()
 	initializeRTTMAS()
+	initializeGRPC()
 
 	initializeWebserver()
 
