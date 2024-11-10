@@ -2,7 +2,7 @@ package mqtt
 
 import (
 	"encoding/json"
-	// cfg "rttmas-backend/config"
+	cfg "rttmas-backend/config"
 	"strings"
 
 	rttmas_binding "rttmas-backend/pkg/binding"
@@ -16,11 +16,11 @@ import (
 // Example topic: uplink/user-report/<UID>
 func messageHandler(client mqtt.Client, msg mqtt.Message) {
 
-	// if cfg.GetConfigValue("GO_ENV") == "development" {
-	// 	logger.Info("Message received from %s:\n%s", msg.Topic(), msg.Payload())
-	// } else {
-	// 	logger.Info("Message received from %s", msg.Topic())
-	// }
+	if cfg.GetConfigValue("GO_ENV") == "development" {
+		logger.Info("Message received from %s:\n%s", msg.Topic(), msg.Payload())
+	} else {
+		logger.Info("Message received from %s", msg.Topic())
+	}
 
 	topicParts := strings.Split(msg.Topic(), "/")
 
