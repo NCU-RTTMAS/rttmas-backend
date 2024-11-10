@@ -10,6 +10,8 @@ services:
     restart: always
     expose:
       - 8080
+    ports:
+      - 50051:50051
     depends_on:
       - rabbitmq
       - mongodb
@@ -107,3 +109,4 @@ services:
 networks:
   default:
     driver: bridge
+    name: rttmas_network
