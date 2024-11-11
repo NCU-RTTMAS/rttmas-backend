@@ -7,9 +7,10 @@
 
 .env
 */*.xml
-.DS_Store
+
 */docker-volume-data
 /redis/data
 /dist
 /media
+.DS_Store
 src/rttmas-backend
