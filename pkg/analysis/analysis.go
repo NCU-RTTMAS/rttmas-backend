@@ -6,6 +6,7 @@ import (
 	// "encoding/json"
 	"fmt"
 	rttmas_db "rttmas-backend/pkg/database"
+	"rttmas-backend/pkg/mqtt"
 	"rttmas-backend/pkg/utils/logger"
 	"strings"
 	"time"
@@ -25,12 +26,12 @@ func StartAnalysisModule() {
 			count += 1
 			// Execute your Redis command here
 			// GetRedis().ScanType(context.Background(), 0, "user_location_report:*", 0, "zset").Result()
-			users, err := getAllSortedSetKeys(context.Background(), rttmas_db.GetRedis(), "user_location_report:*")
+			users, err := getAllSortedSetKeys(context.Background(), rttmas_db.GetRedis(), "plate_locations:*")
 			if err != nil {
 				logger.Info(err)
 			}
 			for _, userWithPrefix := range users {
-				user, _ := strings.CutPrefix(userWithPrefix, "user_location_report:")
+				user, _ := strings.CutPrefix(userWithPrefix, "plate_locations:")
 
 				current_time := rttmas_db.GetRedis().ZRevRange(context.Background(), userWithPrefix, 0, 1)
 				// logger.Info(current_time.)
@@ -65,6 +66,7 @@ func StartAnalysisModule() {
 				// }
 				if result != nil && result.(int64) > 60 {
 					logger.Warning(user, " is speeding")
+					mqtt.PublishToTopic("alarm", fmt.Sprintf("%s is speeding", user))
 				}
 
 				_, err = rttmas_db.GetRedis().JSONSet(context.Background(), fmt.Sprintf("basic_info:%s", user), "$.Velocity", bar.Velocity).Result()
@@ -76,11 +78,13 @@ func StartAnalysisModule() {
 					logger.Error(err)
 				}
 				rttmas_db.GetRedis().Expire(context.Background(), fmt.Sprintf("basic_info:%s", user), 10*time.Second)
-				result, err = rttmas_db.RedisExecuteLuaScript("search_nearby_cars", []string{"basic_info:*"}, userWithPrefix)
-				if err != nil && err.Error() != redis.Nil.Error() {
-					logger.Info(err)
-					continue
-				}
+
+				// result, err = rttmas_db.RedisExecuteLuaScript("search_nearby_cars", []string{"basic_info:*"}, userWithPrefix)
+				// logger.Info(result)
+				// if err != nil && err.Error() != redis.Nil.Error() {
+				// 	logger.Info(err)
+				// 	continue
+				// }
 				// logger.Info(result)
 			}
 
