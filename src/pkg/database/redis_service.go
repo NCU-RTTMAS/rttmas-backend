@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"os"
+	"rttmas-backend/pkg/utils"
 	"rttmas-backend/pkg/utils/logger"
 
 	"github.com/redis/go-redis/v9"
@@ -47,7 +48,7 @@ func LoadLuaScripts(scriptName string, path string) error {
 func InitLuaScripts() error {
 	// Initialize the table for Lua scripts
 	LuaScripts = make(map[string]*LuaScript)
-	luaDir := "lua" // Directory where Lua scripts are stored
+	luaDir := utils.GetWorkingDirectory() + "/lua" // Directory where Lua scripts are stored
 
 	// Use filepath.WalkDir to traverse all files and directories
 	err := filepath.WalkDir(luaDir, func(path string, d os.DirEntry, err error) error {
