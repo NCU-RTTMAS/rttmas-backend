@@ -3,6 +3,7 @@ package binding
 import (
 	"fmt"
 	rttmas_db "rttmas-backend/pkg/database"
+	"rttmas-backend/pkg/utils/logger"
 )
 
 func RTTMAS_InsertUserLocationReport(
@@ -19,14 +20,17 @@ func RTTMAS_AdjustUVScore(
 	latitude float64, longitude float64,
 	reporterUID string,
 ) {
-	rttmas_db.RedisExecuteLuaScript(
-		"binding/adjust_uv_score", "nil",
+	_, err := rttmas_db.RedisExecuteLuaScript(
+		"adjust_uv_score", []string{"nil"},
 		reportTime, reporterUID,
 		longitude, latitude,
 		RTTMAS_UV_BINDING_GEO_SEARCH_RADIUS,
 		RTTMAS_UV_BINDING_PATH_SIMILARITY_WINDOW_IN_SECONDS,
 		RTTMAS_UV_BINDING_CONVERGENCE_THRESHOLD,
 	)
+	if err != nil {
+		logger.Error(err)
+	}
 }
 
 func RTTMAS_OnUserLocationReport(

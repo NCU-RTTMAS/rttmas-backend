@@ -6,11 +6,12 @@ import (
 	"time"
 
 	rttmas_cfg "rttmas-backend/config"
+	rttmas_analysis "rttmas-backend/pkg/analysis"
 	rttmas_binding "rttmas-backend/pkg/binding"
 	rttmas_db "rttmas-backend/pkg/database"
 	rttmas_fcm "rttmas-backend/pkg/fcm"
-	rttmas_grpc "rttmas-backend/pkg/grpc"
 	rttmas_mqtt "rttmas-backend/pkg/mqtt"
+
 	// rttmas_simulation "rttmas-backend/pkg/simulation"
 	rttmas_web "rttmas-backend/pkg/web"
 
@@ -30,7 +31,11 @@ func initializeConfig() {
 
 func initializeDatabase() {
 	redis := rttmas_db.GetRedis()
-	rttmas_mqtt.GetMqttClient()
+	rttmas_db.GetMongo()
+	rttmas_db.InitLuaScripts()
+
+	// rttmas_mqtt.GetMqttClient()
+	rttmas_mqtt.Init()
 
 	redis.FlushAllAsync(context.Background())
 }
@@ -69,16 +74,12 @@ func initializeFCM() {
 	rttmas_fcm.InitializeFCM()
 }
 
-func initializeGRPC() {
-	rttmas_grpc.SetupGrpc()
-}
-
 func main() {
 	initializeConfig()
 	initializeDatabase()
-	initializeFCM()
+	// initializeFCM() // can be disabled when FCM is not in use
 	initializeRTTMAS()
-	initializeGRPC()
+	go rttmas_analysis.StartAnalysisModule()
 
 	initializeWebserver()
 

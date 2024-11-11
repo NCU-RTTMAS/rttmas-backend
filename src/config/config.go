@@ -48,6 +48,10 @@ func InitializeConfig() {
 	config_items["MQTT_QOS"] = os.Getenv("MQTT_QOS")
 	config_items["MQTT_SELF_CLIENT_ID"] = os.Getenv("MQTT_SELF_CLIENT_ID")
 
+	config_items["AMQP_BROKER_URI"] = fmt.Sprintf("%s:%s", os.Getenv("AMQP_HOST"), os.Getenv("AMQP_PORT"))
+	config_items["AMQP_USERNAME"] = os.Getenv("AMQP_USERNAME")
+	config_items["AMQP_PASSWORD"] = os.Getenv("AMQP_PASSWORD")
+
 	config_items["MONGODB_URI"] = fmt.Sprintf(
 		"mongodb://%s:%s@%s:%s",
 		os.Getenv("MONGODB_USERNAME"),

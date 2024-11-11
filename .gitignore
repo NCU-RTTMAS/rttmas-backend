@@ -12,3 +12,5 @@
 /redis/data
 /dist
 /media
+.DS_Store
+src/rttmas-backend

@@ -1,3 +1,15 @@
+[v0.2.5] 2024/11/11
+
+Feature: AMQP Support; Lua Scripts Init; Analysis Module; Admin Backned API
+
+- Added basic AMQP and AMQP exchange control
+- Added Analysis Module Framework
+- Added caller module of Persistent DB
+- Added Direct XML Report
+- Added Backend API for Vehicle/User listing
+
+Update: Adapt bining simulation.go to conform to new lua script loading method
+
 [v0.1.4] 2024/10/21
 Update: Binding algorithm accuracy improvements
 - Fix logic for achieving negative binding scores

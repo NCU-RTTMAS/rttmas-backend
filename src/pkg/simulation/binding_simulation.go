@@ -104,27 +104,27 @@ func playbackTimesteps(timesteps []Timestep, geoSearchRadius int) {
 		// Iterate over user location reports
 		for _, report := range timestep.UserLocationReports {
 			rkey := fmt.Sprintf("u_locations:%s", timestep.TimeSeconds)
-			rttmas_db.RedisExecuteLuaScript("geoadd", rkey, report.Lon, report.Lat, report.UID)
-			rttmas_db.RedisExecuteLuaScript("binding/check_or_create_vid_for_uid", "nil", report.UID)
+			rttmas_db.RedisExecuteLuaScript("geoadd", []string{rkey}, report.Lon, report.Lat, report.UID)
+			rttmas_db.RedisExecuteLuaScript("check_or_create_vid_for_uid", []string{"nil"}, report.UID)
 
-			rawResult, _ := rttmas_db.RedisExecuteLuaScript("binding/get_uv_convergence", "nil", report.UID)
+			rawResult, _ := rttmas_db.RedisExecuteLuaScript("get_uv_convergence", []string{"nil"}, report.UID)
 			if rawResult != nil {
 				vid := rawResult.(string)
 				if vid != "NULL" {
 					rkeyForVID := fmt.Sprintf("v_locations:%s", timestep.TimeSeconds)
-					rttmas_db.RedisExecuteLuaScript("geoadd", rkeyForVID, report.Lon, report.Lat, vid)
+					rttmas_db.RedisExecuteLuaScript("geoadd", []string{rkeyForVID}, report.Lon, report.Lat, vid)
 				}
 			}
 
-			rttmas_db.RedisExecuteLuaScript("binding/adjust_uv_score", "nil", timestep.TimeSeconds, report.UID, report.Lon, report.Lat, geoSearchRadius, 30, 50)
+			rttmas_db.RedisExecuteLuaScript("adjust_uv_score", []string{"nil"}, timestep.TimeSeconds, report.UID, report.Lon, report.Lat, geoSearchRadius, 30, 50)
 		}
 
 		// Iterate over plate recognition reports
 		for _, report := range timestep.PlateRecognitionReports {
 			rkey := fmt.Sprintf("p_locations:%s", timestep.TimeSeconds)
-			rttmas_db.RedisExecuteLuaScript("geoadd", rkey, report.Lon, report.Lat, report.PlateNumberSeen)
+			rttmas_db.RedisExecuteLuaScript("geoadd", []string{rkey}, report.Lon, report.Lat, report.PlateNumberSeen)
 
-			rttmas_db.RedisExecuteLuaScript("binding/adjust_pv_score", "nil", timestep.TimeSeconds, report.PlateNumberSeen, report.ReporterUID, report.Lon, report.Lat, geoSearchRadius, 30, 20)
+			rttmas_db.RedisExecuteLuaScript("adjust_pv_score", []string{"nil"}, timestep.TimeSeconds, report.PlateNumberSeen, report.ReporterUID, report.Lon, report.Lat, geoSearchRadius, 30, 20)
 		}
 
 		tCounter += 1
@@ -140,7 +140,7 @@ func AnalyzeUVBindingAccuracy(xrttmas *xRTTMAS) {
 	for i := 0; i < totalUserCount; i++ {
 		VID := fmt.Sprintf("v__%d", i)
 
-		rawResult, _ := rttmas_db.RedisExecuteLuaScript("binding/get_most_probable_uid_for_vid", "nil", VID)
+		rawResult, _ := rttmas_db.RedisExecuteLuaScript("get_most_probable_uid_for_vid", []string{"nil"}, VID)
 		resultArr := rawResult.([]interface{})
 
 		if len(resultArr) == 0 {
@@ -171,7 +171,7 @@ func AnalyzePVBindingAccuracy(xrttmas *xRTTMAS) {
 	correctCount := 0
 
 	for _, fact := range xrttmas.PVBindingFacts.VehicleFacts {
-		rawResult, _ := rttmas_db.RedisExecuteLuaScript("binding/get_most_probable_plate_for_vid", "nil", fact.VID)
+		rawResult, _ := rttmas_db.RedisExecuteLuaScript("get_most_probable_plate_for_vid", []string{"nil"}, fact.VID)
 		resultArr := rawResult.([]interface{})
 
 		if len(resultArr) == 0 {
@@ -192,7 +192,7 @@ func AnalyzePVBindingAccuracy(xrttmas *xRTTMAS) {
 		}
 
 		// Check if this vehicle has been seen
-		rawResult, _ = rttmas_db.RedisExecuteLuaScript("binding/get_vehicle_seen_count", "nil", fact.VID)
+		rawResult, _ = rttmas_db.RedisExecuteLuaScript("get_vehicle_seen_count", []string{"nil"}, fact.VID)
 		seenCount := rawResult.(int64)
 		if seenCount > 0 {
 			if !isMatch {
@@ -218,7 +218,7 @@ func AnalyzeVIDCreation(xrttmas *xRTTMAS) {
 		totalSeenVehicleCount++
 		UID := strings.ReplaceAll(fact.VID, "v", "u")
 
-		rawResult, _ := rttmas_db.RedisExecuteLuaScript("binding/analyze_plate_for_uid", "nil", UID)
+		rawResult, _ := rttmas_db.RedisExecuteLuaScript("analyze_plate_for_uid", []string{"nil"}, UID)
 		if rawResult == nil {
 			continue
 		}
@@ -243,7 +243,7 @@ func AnalyzeVIDCreation(xrttmas *xRTTMAS) {
 }
 
 func AnalyzeBindingsForDynamicVIDCreation(xrttmas *xRTTMAS) {
-	allVIDs, _ := rttmas_db.RedisExecuteLuaScript("binding/analyze_all_vid_bindings", "nil")
+	allVIDs, _ := rttmas_db.RedisExecuteLuaScript("analyze_all_vid_bindings", []string{"nil"})
 	if allVIDs == nil {
 		logger.Debug("None")
 	}
@@ -256,7 +256,7 @@ func AnalyzeBindingsForDynamicVIDCreation(xrttmas *xRTTMAS) {
 		logger.Info(VID)
 
 		// Plate Prediction
-		rawResult1, _ := rttmas_db.RedisExecuteLuaScript("binding/get_most_probable_plate_for_vid", "nil", VID)
+		rawResult1, _ := rttmas_db.RedisExecuteLuaScript("get_most_probable_plate_for_vid", []string{"nil"}, VID)
 		resultArr1 := rawResult1.([]interface{})
 		if len(resultArr1) == 0 {
 			continue
@@ -268,7 +268,7 @@ func AnalyzeBindingsForDynamicVIDCreation(xrttmas *xRTTMAS) {
 		}
 
 		// UID Prediction
-		rawResult2, _ := rttmas_db.RedisExecuteLuaScript("binding/get_most_probable_uid_for_vid", "nil", VID)
+		rawResult2, _ := rttmas_db.RedisExecuteLuaScript("get_most_probable_uid_for_vid", []string{"nil"}, VID)
 		resultArr2 := rawResult2.([]interface{})
 		if len(resultArr2) == 0 {
 			continue
@@ -327,7 +327,7 @@ func AnalysisExperiment() {
 
 		rttmas_db.GetRedis().FlushAll(context.TODO())
 
-		rttmas_db.RedisExecuteLuaScript("create_indices", "nil")
+		rttmas_db.RedisExecuteLuaScript("create_indices", []string{"nil"})
 
 		playbackTimesteps(xrttmas.Simulation.Timesteps, radius)
 	}
