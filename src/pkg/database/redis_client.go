@@ -26,6 +26,7 @@ func GetRedis() *redis.Client {
 	}
 	return redisClient
 }
+
 func EnableKeyExpiredNotification() {
 	// this is telling redis to publish events since it's off by default.
 	_, err := GetRedis().Do(ctx, "CONFIG", "SET", "notify-keyspace-events", "KEA").Result()

@@ -7,6 +7,7 @@ import (
 	"github.com/gin-gonic/gin"
 
 	cfg "rttmas-backend/config"
+	rttmas_api "rttmas-backend/pkg/api"
 	"rttmas-backend/pkg/utils/logger"
 )
 
@@ -35,12 +36,19 @@ func GetGinEngine() *gin.Engine {
 			c.Header("Permissions-Policy", "geolocation=(),midi=(),sync-xhr=(),microphone=(),camera=(),magnetometer=(),gyroscope=(),fullscreen=(self),payment=()")
 			c.Next()
 		})
-		ginEngine.GET("/users", GetUserHandler)
-		ginEngine.GET("/user/:uid", GetUserByUIDHandler)
-		ginEngine.GET("/vehicle/:plate", GetSingleVehicleHandler)
-		ginEngine.GET("/vehicles", GetVehiclesHandler)
+
+		setAPIRoutes(ginEngine)
 
 		logger.Info("Gin web server initialization complete.")
 	})
 	return ginEngine
+}
+
+func setAPIRoutes(ginEngine *gin.Engine) {
+	// ginEngine.GET("/users", GetUserHandler)
+	// ginEngine.GET("/user/:uid", GetUserByUIDHandler)
+	// ginEngine.GET("/vehicle/:plate", GetSingleVehicleHandler)
+	// ginEngine.GET("/vehicles", GetVehiclesHandler)
+
+	ginEngine.GET("/playback", rttmas_api.QueryObjectPath)
 }

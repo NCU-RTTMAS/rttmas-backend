@@ -2,98 +2,152 @@ package database
 
 import (
 	"context"
-	// "fmt"
-
-	// "go.mongodb.org/mongo-driver/bson"
-	// "rttma-backend/pkg/models"
+	"reflect"
 	"rttmas-backend/pkg/utils/logger"
 
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-var mongoCli *mongo.Client
+// FindMultiple retrieves multiple documents from a collection based on filter and sort options.
+func MongoFindMultiple[T any](collection *mongo.Collection, filterOptions interface{}, findOptions *options.FindOptions) ([]T, int, error) {
+	var results []T
 
-type mongoCollection struct {
-	*mongo.Collection
-}
-type Collections struct {
-	Vehicles                *mongo.Collection
-	UserReports             *mongo.Collection
-	PlateRecognitionReports *mongo.Collection
-	VehicleTrueLocations    *mongo.Collection
-	UserLocationReports     *mongo.Collection
-	// WIP: other collections
-}
-
-var RTTMA_Collections Collections
-
-// var RTTMA_Database = mongoCli.Database("rttma")
-var RTTMA_Database *mongo.Database
-
-func initDatatables() {
-	RTTMA_Database = mongoCli.Database("rttma")
-	logger.Info(RTTMA_Database)
-
-	RTTMA_Collections.Vehicles = RTTMA_Database.Collection("vehicles")
-	RTTMA_Collections.PlateRecognitionReports = RTTMA_Database.Collection("plate-recognition-reports")
-	RTTMA_Collections.UserReports = RTTMA_Database.Collection("user-reports")
-	RTTMA_Collections.VehicleTrueLocations = RTTMA_Database.Collection("vehicle-true-locations")
-	RTTMA_Collections.UserLocationReports = RTTMA_Database.Collection("user-location-reports")
-
-}
-
-func initEngine() {
-	var err error
-	dbString := "mongodb://root:example@localhost:27017"
-	// dbString := fmt.Sprintf("mongodb://%s:%s@%s:%s", databaseInfo.Username, databaseInfo.Password, databaseInfo.Server.Host, databaseInfo.Server.Port)
-	clientOptions := options.Client().ApplyURI(dbString)
-
-	mongoCli, err = mongo.Connect(context.TODO(), clientOptions)
+	// First, count the number of documents satisfying the filter conditions
+	count, err := collection.CountDocuments(context.TODO(), filterOptions)
 	if err != nil {
-		logger.Fatal(err)
+		return nil, 0, err
 	}
 
-	err = mongoCli.Ping(context.TODO(), nil)
+	// If the count is zero, there is no need to find anymore.
+	if count == 0 {
+		return []T{}, 0, nil
+	}
+
+	// Find the items with the find options (skip, limit, sorting, etc.)
+	cursor, err := collection.Find(context.TODO(), filterOptions, findOptions)
 	if err != nil {
-		logger.Fatal(err)
+		return nil, 0, err
+	}
+	defer cursor.Close(context.TODO())
+
+	for cursor.Next(context.TODO()) {
+		var elem T
+		if err := cursor.Decode(&elem); err != nil {
+			return nil, 0, err
+		}
+		results = append(results, elem)
 	}
 
-}
-
-func GetMongo() *mongo.Client {
-	if mongoCli == nil {
-		initEngine()
-		initDatatables()
+	if err := cursor.Err(); err != nil {
+		return nil, 0, err
 	}
-	return mongoCli
+
+	return results, int(count), nil
 }
 
-// func (coll *mongoCollection) StoreVehicle(v models.Vehicle_t) {
-// 	logger.Info(coll)
-// 	result, err := coll.Collection.InsertOne(context.Background(), v)
-// 	if err != nil {
-// 		logger.Error(err)
-// 	}
-// 	logger.Info(result)
-// }
+func MongoCount[T any](collection *mongo.Collection, filterOptions interface{}, findOptions *options.CountOptions) (int, error) {
+	count, err := collection.CountDocuments(context.TODO(), filterOptions, findOptions)
+	if err != nil {
+		return -1, err
+	}
+	return int(count), nil
+}
 
-// func initDatabase() {
+// FindSingleByID retrieves a single document from a collection based on its ID.
+func MongoFindSingleByID[T any](collection *mongo.Collection, id string, options *options.FindOneOptions) (T, error) {
+	var result T
+	filter := bson.M{"id": id}
 
-// 	if result, err := GetClient().Database("mlt").Collection("users").CountDocuments(context.Background(), bson.M{}); err != nil {
-// 		logger.Fatal("database initalization failed")
-// 	} else if result == 0 {
-// 		GetClient().Database("mlt").Collection("users").InsertOne(context.Background(), models.DefaultUser)
-// 	}
+	err := collection.FindOne(context.TODO(), filter, options).Decode(&result)
+	if err != nil {
+		return result, err
+	}
 
-// 	if result, err := GetClient().Database("mlt").Collection("global_config").CountDocuments(context.Background(), bson.M{}); err != nil {
-// 		logger.Fatal("database initalization failed")
-// 	} else if result == 0 {
-// 		GetClient().Database("mlt").Collection("global_config").InsertOne(context.Background(), models.SMTPConfigTemplate)
-// 		GetClient().Database("mlt").Collection("global_config").InsertOne(context.Background(), models.PeriodicPollingPeriodTemplate)
-// 		GetClient().Database("mlt").Collection("global_config").InsertOne(context.Background(), models.SystemTimezoneTemplate)
-// 	}
-// }
+	return result, nil
+}
 
-/*
- */
+// FindSingleByID retrieves a single document from a collection based on its ID.
+func MongoFindSingleByField[T any](collection *mongo.Collection, field string, value any, options *options.FindOneOptions) (T, error) {
+	var result T
+	filter := bson.M{field: value}
+
+	err := collection.FindOne(context.TODO(), filter, options).Decode(&result)
+	if err != nil {
+		return result, err
+	}
+
+	return result, nil
+}
+
+// Create inserts a new document into the collection and returns the created object.
+func MongoCreate[T any](collection *mongo.Collection, item T) (T, error) {
+	SetValueOfAnyTypedObject(&item, "CreatedAt", GetCurrentTimestampSeconds())
+	SetValueOfAnyTypedObject(&item, "LastModifiedAt", GetCurrentTimestampSeconds())
+
+	_, err := collection.InsertOne(context.TODO(), item)
+	if err != nil {
+		return item, err
+	}
+	return item, nil
+}
+
+// Update modifies a document in the collection based on its ID and returns the updated object.
+func MongoUpdate[T any](collection *mongo.Collection, id string, newValues T) (T, error) {
+	var updatedDoc T
+	filter := bson.M{"id": id}
+	update := bson.M{"$set": newValues}
+
+	opts := options.FindOneAndUpdateOptions{}
+	opts.SetReturnDocument(options.After)
+
+	err := collection.FindOneAndUpdate(context.TODO(), filter, update, &opts).Decode(&updatedDoc)
+	if err != nil {
+		return updatedDoc, err
+	}
+
+	return updatedDoc, nil
+}
+
+// Delete removes a document from the collection based on its ID and returns the deleted object.
+func MongoDelete[T any](collection *mongo.Collection, id string) (T, error) {
+	var deletedDoc T
+	filter := bson.M{"id": id}
+
+	err := collection.FindOneAndDelete(context.TODO(), filter).Decode(&deletedDoc)
+	if err != nil {
+		return deletedDoc, err
+	}
+
+	return deletedDoc, nil
+}
+
+func SetValueOfAnyTypedObject(obj any, field string, value any) {
+	ref := reflect.ValueOf(obj)
+
+	// if its a pointer, resolve its value
+	if ref.Kind() == reflect.Ptr {
+		ref = reflect.Indirect(ref)
+	}
+
+	if ref.Kind() == reflect.Interface {
+		ref = ref.Elem()
+	}
+
+	// should double check we now have a struct (could still be anything)
+	if ref.Kind() != reflect.Struct {
+		logger.Error("Wrong type")
+	}
+
+	prop := ref.FieldByName(field)
+
+	// Ref: https://stackoverflow.com/a/69750603
+	// If the field does not exist, Value.FieldByName() returns the zero value of reflect.Value
+	// so if prop is equal to a blank reflect.Value{}, skip it
+	if prop == (reflect.Value{}) {
+		return
+	}
+
+	prop.Set(reflect.ValueOf(value))
+}

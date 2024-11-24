@@ -1,41 +1,41 @@
 package mqtt
 
-import (
-	"encoding/json"
+// import (
+// 	"encoding/json"
 
-	rttmas_binding "rttmas-backend/pkg/binding"
-	"rttmas-backend/pkg/rttma_simulation"
-	"rttmas-backend/pkg/utils/logger"
+// 	rttmas_binding "rttmas-backend/pkg/binding"
+// 	"rttmas-backend/pkg/rttma_simulation"
+// 	"rttmas-backend/pkg/utils/logger"
 
-	amqp "github.com/rabbitmq/amqp091-go"
-)
+// 	amqp "github.com/rabbitmq/amqp091-go"
+// )
 
-func CreateAMQPEndpoints() {
-	err := CreateConsumer("analysis_module_queue", func(msg amqp.Delivery) {
-		// logger.Info(msg.RoutingKey, "\n", string(msg.Body))
-		// PublishToTopic("foo", string(msg.Body))
-		// Add your message processing logic here
+// func CreateAMQPEndpoints() {
+// 	err := CreateConsumer("analysis_module_queue", func(msg amqp.Delivery) {
+// 		// logger.Info(msg.RoutingKey, "\n", string(msg.Body))
+// 		// PublishToTopic("foo", string(msg.Body))
+// 		// Add your message processing logic here
 
-		switch msg.RoutingKey {
-		case "traffic.plate_recognition_reports":
-			var prr rttma_simulation.PlateRecognitionReport
-			json.Unmarshal(msg.Body, &prr)
-			rttmas_binding.RTTMAS_OnPlateReport(int64(prr.Timestep), prr.Lat, prr.Lon, prr.PlateNumberSeen, prr.ReporterUID)
-			rttma_simulation.StorePlateRecognitionReport(prr)
-		case "traffic.user_location_reports":
-			var ulr rttma_simulation.UserLocationReport
-			json.Unmarshal(msg.Body, &ulr)
-			rttma_simulation.StoreUserLocationReport(ulr)
-			rttmas_binding.RTTMAS_OnUserLocationReport(int64(ulr.Timestep), ulr.Lat, ulr.Lon, ulr.UID)
+// 		switch msg.RoutingKey {
+// 		case "traffic.plate_recognition_reports":
+// 			var prr rttma_simulation.PlateRecognitionReport
+// 			json.Unmarshal(msg.Body, &prr)
+// 			rttmas_binding.RTTMAS_OnPlateReport(int64(prr.Timestep), prr.Lat, prr.Lon, prr.PlateNumberSeen, prr.ReporterUID)
+// 			rttma_simulation.StorePlateRecognitionReport(prr)
+// 		case "traffic.user_location_reports":
+// 			var ulr rttma_simulation.UserLocationReport
+// 			json.Unmarshal(msg.Body, &ulr)
+// 			rttma_simulation.StoreUserLocationReport(ulr)
+// 			rttmas_binding.RTTMAS_OnUserLocationReport(int64(ulr.Timestep), ulr.Lat, ulr.Lon, ulr.UID)
 
-		case "traffic.vehicle_true_locations":
-			var vtl rttma_simulation.VehicleTrueLocation
-			json.Unmarshal(msg.Body, &vtl)
-			rttma_simulation.StoreVehicleTrueLocation(vtl)
-		}
-	})
-	if err != nil {
-		logger.Info(err)
-	}
+// 		case "traffic.vehicle_true_locations":
+// 			var vtl rttma_simulation.VehicleTrueLocation
+// 			json.Unmarshal(msg.Body, &vtl)
+// 			rttma_simulation.StoreVehicleTrueLocation(vtl)
+// 		}
+// 	})
+// 	if err != nil {
+// 		logger.Info(err)
+// 	}
 
-}
+// }
