@@ -31,7 +31,7 @@ func messageHandler(client mqtt.Client, msg mqtt.Message) {
 
 	var payload map[string]interface{}
 	json.Unmarshal(msg.Payload(), &payload)
-	logger.Info(payload)
+	// logger.Info(payload)
 
 	reportType := topicParts[1]
 	reporterUID := topicParts[2]
@@ -46,8 +46,8 @@ func HandleReport(payload map[string]interface{}, reporterUID string) {
 	reportTime := int64(payload["report_time"].(float64))
 	latitude := payload["lat"].(float64)
 	longitude := payload["lon"].(float64)
-	heading := payload["heading"].(float64)
-	speed := payload["speed"].(float64)
+	heading := payload["gps_speed_kmh"].(float64)
+	speed := payload["gps_heading"].(float64)
 
 	rttmas_binding.RTTMAS_OnUserLocationReport(reportTime, latitude, longitude, reporterUID)
 
