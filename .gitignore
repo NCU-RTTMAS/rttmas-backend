@@ -1,8 +1,7 @@
 /credentials
-/credentials/*
 
-/pkg/simulation/sumo-scenarios/*
-/pkg/simulation/sumo-scenarios
+src/pkg/simulation/sumo-scenarios/*
+src/pkg/simulation/sumo-scenarios
 /lua/_binding
 
 .env
@@ -13,4 +12,5 @@
 /dist
 /media
 .DS_Store
-src/rttmas-backend
+
+/__*
