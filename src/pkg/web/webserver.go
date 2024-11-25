@@ -1,7 +1,6 @@
 package web
 
 import (
-	"net/http"
 	"sync"
 
 	"github.com/gin-gonic/gin"
@@ -22,10 +21,10 @@ func GetGinEngine() *gin.Engine {
 
 		// Add security headers to protect the API
 		ginEngine.Use(func(c *gin.Context) {
-			if c.Request.Host != cfg.GetConfigValue("FULL_API_URL") {
-				c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "Invalid host header"})
-				return
-			}
+			// if c.Request.Host != cfg.GetConfigValue("FULL_API_URL") {
+			// 	c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "Invalid host header"})
+			// 	return
+			// }
 			c.Header("X-Frame-Options", "DENY")
 			c.Header("Access-Control-Allow-Origin", "*")
 			// c.Header("Content-Security-Policy", "default-src 'self'; connect-src *; font-src *; script-src-elem * 'unsafe-inline'; img-src * data:; style-src * 'unsafe-inline';")
@@ -51,4 +50,5 @@ func setAPIRoutes(ginEngine *gin.Engine) {
 	// ginEngine.GET("/vehicles", GetVehiclesHandler)
 
 	ginEngine.GET("/playback", rttmas_api.QueryObjectPath)
+	ginEngine.GET("/playback/objects", rttmas_api.QueryAvailableObjects)
 }

@@ -3,6 +3,7 @@ package database
 import (
 	"context"
 	"reflect"
+	"regexp"
 	"rttmas-backend/pkg/utils/logger"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -79,6 +80,22 @@ func MongoFindSingleByField[T any](collection *mongo.Collection, field string, v
 	}
 
 	return result, nil
+}
+
+func MongoGetUniqueFieldValues[T any](collection *mongo.Collection, field string, query string) ([]interface{}, error) {
+	var results []interface{}
+
+	// Create a regex pattern for the query text
+	regexPattern := regexp.QuoteMeta(query) // Case-insensitive search
+	filter := bson.M{field: bson.M{"$regex": regexPattern}}
+
+	results, err := collection.Distinct(context.TODO(), field, filter)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return results, nil
 }
 
 // Create inserts a new document into the collection and returns the created object.

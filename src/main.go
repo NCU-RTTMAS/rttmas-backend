@@ -9,6 +9,7 @@ import (
 	rttmas_binding "rttmas-backend/pkg/binding"
 	rttmas_db "rttmas-backend/pkg/database"
 	rttmas_fcm "rttmas-backend/pkg/fcm"
+	rttmas_models "rttmas-backend/pkg/models"
 	rttmas_mqtt "rttmas-backend/pkg/mqtt"
 
 	rttmas_simulation "rttmas-backend/pkg/simulation"
@@ -77,6 +78,11 @@ func initializeFCM() {
 	rttmas_fcm.InitializeFCM()
 }
 
+func testFunction() {
+	r, _ := rttmas_db.MongoGetUniqueFieldValues[rttmas_models.UserData](rttmas_db.UserDataCollection, "uid", "u__5")
+	logger.Info(r)
+}
+
 func main() {
 
 	initializeConfig()
@@ -88,17 +94,15 @@ func main() {
 	if rttmas_cfg.GetConfigValueAsBool("RTTMAS_ENABLE_FCM") {
 		initializeFCM()
 	}
+	testFunction()
 
 	initializeRTTMAS()
 
-	if rttmas_cfg.GetConfigValueAsBool("RTTMAS_ENABLE_WEBSERVER") {
-		initializeWebserver()
-	}
-
 	if rttmas_cfg.GetConfigValueAsBool("RTTMAS_SIM_ANALYSIS") {
 		// go rttmas_analysis.StartAnalysisModule()
-	}
-	if rttmas_cfg.GetConfigValueAsBool("RTTMAS_SIM_BINDING") {
+	} else if rttmas_cfg.GetConfigValueAsBool("RTTMAS_SIM_BINDING") {
 		rttmas_simulation.AnalysisExperiment()
+	} else if rttmas_cfg.GetConfigValueAsBool("RTTMAS_ENABLE_WEBSERVER") {
+		initializeWebserver()
 	}
 }

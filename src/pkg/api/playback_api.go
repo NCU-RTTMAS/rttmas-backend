@@ -4,8 +4,9 @@ import (
 	"net/http"
 	"strconv"
 
+	rttmas_db "rttmas-backend/pkg/database"
+	rttmas_models "rttmas-backend/pkg/models"
 	rttmas_service "rttmas-backend/pkg/services"
-	"rttmas-backend/pkg/utils/logger"
 
 	"github.com/gin-gonic/gin"
 )
@@ -24,8 +25,26 @@ func QueryObjectPath(c *gin.Context) {
 	startTime := String2Int64(c.Query("start_time"))
 	endTime := String2Int64(c.Query("end_time"))
 
-	results := rttmas_service.QueryObjectPath(objectType, targetIdentifier, startTime, endTime)
-	logger.Info(results)
+	var results interface{}
+	if objectType == 1 {
+		results = rttmas_service.QueryUserPath(targetIdentifier, startTime, endTime)
+	} else if objectType == 2 {
+		results = rttmas_service.QueryPlatePath(targetIdentifier, startTime, endTime)
+	}
 
 	c.JSON(http.StatusOK, results)
+}
+
+func QueryAvailableObjects(c *gin.Context) {
+	searchQuery := c.Query("query")
+
+	allUIDs, _ := rttmas_db.MongoGetUniqueFieldValues[rttmas_models.UserData](rttmas_db.UserDataCollection, "uid", searchQuery)
+	allPlateNumbers, _ := rttmas_db.MongoGetUniqueFieldValues[rttmas_models.PlateData](rttmas_db.PlateDataCollection, "plate_number", searchQuery)
+
+	result := map[string][]interface{}{
+		"uids":          allUIDs,
+		"plate_numbers": allPlateNumbers,
+	}
+
+	c.JSON(http.StatusOK, result)
 }
