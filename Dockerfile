@@ -34,7 +34,7 @@ COPY --from=builder /app/rttmas .
 # Copy the rbac_model.conf file
 COPY ./credentials ./credentials
 
-COPY ./src/lua ./lua
+COPY ./src/lua ./src/lua
 
 # Expose the port the app runs on
 EXPOSE 8080

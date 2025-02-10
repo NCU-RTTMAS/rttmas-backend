@@ -10,6 +10,8 @@ import (
 	"strings"
 
 	rttmas_db "rttmas-backend/pkg/database"
+	rttmas_models "rttmas-backend/pkg/models"
+	rttmas_service "rttmas-backend/pkg/services"
 	"rttmas-backend/pkg/utils/logger"
 )
 
@@ -117,6 +119,16 @@ func playbackTimesteps(timesteps []Timestep, geoSearchRadius int) {
 			}
 
 			rttmas_db.RedisExecuteLuaScript("adjust_uv_score", []string{"nil"}, timestep.TimeSeconds, report.UID, report.Lon, report.Lat, geoSearchRadius, 30, 50)
+
+			var mongoReportRecord rttmas_models.UserReport
+			mongoReportRecord.Latitude = report.Lat
+			mongoReportRecord.Longitude = report.Lon
+			mongoReportRecord.Speed = 0
+			mongoReportRecord.Heading = 0
+
+			reportTime, _ := strconv.ParseInt(timestep.TimeSeconds, 10, 64)
+
+			rttmas_service.StoreUserReportToMongoDB(report.UID, reportTime, mongoReportRecord)
 		}
 
 		// Iterate over plate recognition reports
@@ -304,10 +316,10 @@ func AnalysisExperiment() {
 	// Replace with the actual path to your XML file
 	// filename := "pkg/simulation/sumo-scenarios/output_20240915_1915_taipei_nogpserror_forwardonly.xml"
 	// filename := "pkg/simulation/sumo-scenarios/output_20240915_1935_nogpserror_forwardonly.xml"
-	filename := "pkg/simulation/sumo-scenarios/output_20240915_1830_taipei_nogpserror.xml"
+	// filename := "pkg/simulation/sumo-scenarios/output_20240915_1830_taipei_nogpserror.xml"
 	// filename := "pkg/simulation/sumo-scenarios/output_20240915_1830_taipei_withgpserror.xml"
 
-	// filename := "pkg/simulation/sumo-scenarios/output_20240915_1751_withgpserror.xml"
+	filename := "pkg/simulation/sumo-scenarios/output_20241027_2054_zhongli_nogpserror_estimate.xml"
 	// filename := "pkg/simulation/sumo-scenarios/output_20240915_1751_nogpserror.xml"
 
 	// filename := "pkg/simulation/sumo-scenarios/output_20240905_1615_nogpserror.xml"

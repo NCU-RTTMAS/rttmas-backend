@@ -1,7 +1,7 @@
 package mqtt
 
-import (
-	"encoding/json"
+// import (
+// 	"encoding/json"
 
 	rttmas_binding "rttmas-backend/pkg/binding"
 	"rttmas-backend/pkg/rttma_simulation"
@@ -9,14 +9,14 @@ import (
 	"rttmas-backend/pkg/utils/logger"
 	"rttmas-backend/pkg/web/socketio"
 
-	amqp "github.com/rabbitmq/amqp091-go"
-)
+// 	amqp "github.com/rabbitmq/amqp091-go"
+// )
 
-func CreateAMQPEndpoints() {
-	err := CreateConsumer("analysis_module_queue", func(msg amqp.Delivery) {
-		// logger.Info(msg.RoutingKey, "\n", string(msg.Body))
-		// PublishToTopic("foo", string(msg.Body))
-		// Add your message processing logic here
+// func CreateAMQPEndpoints() {
+// 	err := CreateConsumer("analysis_module_queue", func(msg amqp.Delivery) {
+// 		// logger.Info(msg.RoutingKey, "\n", string(msg.Body))
+// 		// PublishToTopic("foo", string(msg.Body))
+// 		// Add your message processing logic here
 
 		switch msg.RoutingKey {
 		case "traffic.plate_recognition_reports":
@@ -42,4 +42,4 @@ func CreateAMQPEndpoints() {
 		logger.Info(err)
 	}
 
-}
+// }

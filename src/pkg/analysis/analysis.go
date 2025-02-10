@@ -159,20 +159,20 @@ func getAllSortedSetKeys(ctx context.Context, rdb *redis.Client, pattern string)
 		var err error
 		var batchKeys []string
 
-		// SCAN with count 0 lets Redis decide the batch size, and TYPE zset filters for sorted sets
-		batchKeys, cursor, err = rdb.ScanType(ctx, cursor, pattern, 0, "zset").Result()
-		if err != nil {
-			return nil, err
-		}
+// 		// SCAN with count 0 lets Redis decide the batch size, and TYPE zset filters for sorted sets
+// 		batchKeys, cursor, err = rdb.ScanType(ctx, cursor, pattern, 0, "zset").Result()
+// 		if err != nil {
+// 			return nil, err
+// 		}
 
-		// Append the found keys to the result list
-		keys = append(keys, batchKeys...)
+// 		// Append the found keys to the result list
+// 		keys = append(keys, batchKeys...)
 
-		// Exit when the cursor is 0, meaning the scan is complete
-		if cursor == 0 {
-			break
-		}
-	}
+// 		// Exit when the cursor is 0, meaning the scan is complete
+// 		if cursor == 0 {
+// 			break
+// 		}
+// 	}
 
 	return keys, nil
 }

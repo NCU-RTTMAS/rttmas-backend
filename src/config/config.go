@@ -4,12 +4,21 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+
+	_ "github.com/joho/godotenv/autoload"
 )
 
 var config_items map[string]string
 
 func InitializeConfig() {
+
 	config_items = make(map[string]string)
+
+	config_items["RTTMAS_ENABLE_FCM"] = os.Getenv("RTTMAS_ENABLE_FCM")
+	config_items["RTTMAS_ENABLE_MQTT"] = os.Getenv("RTTMAS_ENABLE_MQTT")
+	config_items["RTTMAS_ENABLE_WEBSERVER"] = os.Getenv("RTTMAS_ENABLE_WEBSERVER")
+	config_items["RTTMAS_SIM_ANALYSIS"] = os.Getenv("RTTMAS_SIM_ANALYSIS")
+	config_items["RTTMAS_SIM_BINDING"] = os.Getenv("RTTMAS_SIM_BINDING")
 
 	config_items["GO_ENV"] = os.Getenv("GO_ENV")
 	if config_items["GO_ENV"] == "development" {
@@ -79,4 +88,9 @@ func GetConfigValueAsInt(key string) int {
 	}
 
 	return int(intVal)
+}
+
+func GetConfigValueAsBool(key string) bool {
+	stringVal := GetConfigValue(key)
+	return stringVal == "true"
 }

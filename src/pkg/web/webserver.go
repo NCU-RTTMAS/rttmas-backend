@@ -10,6 +10,7 @@ import (
 	"github.com/gin-gonic/gin"
 
 	cfg "rttmas-backend/config"
+	rttmas_api "rttmas-backend/pkg/api"
 	"rttmas-backend/pkg/utils/logger"
 	"rttmas-backend/pkg/web/socketio"
 )
@@ -45,10 +46,10 @@ func GetGinEngine() *gin.Engine {
 			c.Header("Permissions-Policy", "geolocation=(),midi=(),sync-xhr=(),microphone=(),camera=(),magnetometer=(),gyroscope=(),fullscreen=(self),payment=()")
 			c.Next()
 		})
-		ginEngine.GET("/users", GetUserHandler)
-		ginEngine.GET("/user/:uid", GetUserByUIDHandler)
-		ginEngine.GET("/vehicle/:plate", GetSingleVehicleHandler)
-		ginEngine.GET("/vehicles", GetVehiclesHandler)
+		// ginEngine.GET("/users", GetUserHandler)
+		// ginEngine.GET("/user/:uid", GetUserByUIDHandler)
+		// ginEngine.GET("/vehicle/:plate", GetSingleVehicleHandler)
+		// ginEngine.GET("/vehicles", GetVehiclesHandler)
 		ginEngine.GET("/socket.io/*any", gin.WrapH(socketio.GetServerInstance()))
 		ginEngine.POST("/socket.io/*any", gin.WrapH(socketio.GetServerInstance()))
 		logger.Info("Gin web server initialization complete.")
@@ -81,4 +82,14 @@ func DistFS() (http.FileSystem, error) {
 		return nil, err
 	}
 	return http.FS(subFS), nil
+}
+
+func setAPIRoutes(ginEngine *gin.Engine) {
+	// ginEngine.GET("/users", GetUserHandler)
+	// ginEngine.GET("/user/:uid", GetUserByUIDHandler)
+	// ginEngine.GET("/vehicle/:plate", GetSingleVehicleHandler)
+	// ginEngine.GET("/vehicles", GetVehiclesHandler)
+
+	ginEngine.GET("/playback", rttmas_api.QueryObjectPath)
+	ginEngine.GET("/playback/objects", rttmas_api.QueryAvailableObjects)
 }

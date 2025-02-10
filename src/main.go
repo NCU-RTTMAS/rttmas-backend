@@ -6,14 +6,14 @@ import (
 	"time"
 
 	rttmas_cfg "rttmas-backend/config"
-	rttmas_analysis "rttmas-backend/pkg/analysis"
 	rttmas_binding "rttmas-backend/pkg/binding"
 	"rttmas-backend/pkg/cron"
 	rttmas_db "rttmas-backend/pkg/database"
 	rttmas_fcm "rttmas-backend/pkg/fcm"
+	rttmas_models "rttmas-backend/pkg/models"
 	rttmas_mqtt "rttmas-backend/pkg/mqtt"
 
-	// rttmas_simulation "rttmas-backend/pkg/simulation"
+	rttmas_simulation "rttmas-backend/pkg/simulation"
 	rttmas_web "rttmas-backend/pkg/web"
 
 	"rttmas-backend/pkg/utils/logger"
@@ -25,20 +25,27 @@ func initializeConfig() {
 	// Load environment variables
 	err := godotenv.Load()
 	if err != nil {
-		logger.Fatal("Error loading .env file")
+		err = godotenv.Load("../.env")
+		if err != nil {
+			logger.Fatal("Error loading .env file")
+		}
 	}
 	rttmas_cfg.InitializeConfig()
 }
 
 func initializeDatabase() {
 	redis := rttmas_db.GetRedis()
-	rttmas_db.GetMongo()
+	rttmas_db.GetMongoClient()
 	rttmas_db.InitLuaScripts()
 	rttmas_mqtt.GetMqttClient()
 	// rttmas_mqtt.Init()
 	cron.Init()
 
 	redis.FlushAllAsync(context.Background())
+}
+
+func initializeMQTT() {
+	rttmas_mqtt.GetMqttClient()
 }
 
 func initializeWebserver() {
@@ -75,14 +82,32 @@ func initializeFCM() {
 	rttmas_fcm.InitializeFCM()
 }
 
+func testFunction() {
+	r, _ := rttmas_db.MongoGetUniqueFieldValues[rttmas_models.UserData](rttmas_db.UserDataCollection, "uid", "u__5")
+	logger.Info(r)
+}
+
 func main() {
+
 	initializeConfig()
 	initializeDatabase()
-	initializeFCM() // can be disabled when FCM is not in use
+	logger.Info(rttmas_cfg.GetConfigValueAsBool("RTTMAS_ENABLE_WEBSERVER"))
+
+	if rttmas_cfg.GetConfigValueAsBool("RTTMAS_ENABLE_MQTT") {
+		initializeMQTT()
+	}
+	if rttmas_cfg.GetConfigValueAsBool("RTTMAS_ENABLE_FCM") {
+		initializeFCM()
+	}
+	testFunction()
+
 	initializeRTTMAS()
-	go rttmas_analysis.StartAnalysisModule()
 
-	initializeWebserver()
-
-	// rttmas_simulation.AnalysisExperiment()
+	if rttmas_cfg.GetConfigValueAsBool("RTTMAS_SIM_ANALYSIS") {
+		// go rttmas_analysis.StartAnalysisModule()
+	} else if rttmas_cfg.GetConfigValueAsBool("RTTMAS_SIM_BINDING") {
+		rttmas_simulation.AnalysisExperiment()
+	} else if rttmas_cfg.GetConfigValueAsBool("RTTMAS_ENABLE_WEBSERVER") {
+		initializeWebserver()
+	}
 }

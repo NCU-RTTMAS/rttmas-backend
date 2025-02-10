@@ -45,7 +45,7 @@ func messageHandler(client mqtt.Client, msg mqtt.Message) {
 	case "user-report":
 		var report rttma_simulation.UserReport
 		json.Unmarshal(msg.Payload(), &report)
-		rttma_simulation.StoreUserLocationReport(report)
+		// rttma_simulation.StoreUserLocationReport(report) // WIP
 		HandleUserLocationReport(report, report.ReporterUID)
 		rttmas_binding.RTTMAS_OnUserLocationReport(int64(report.ReportTime), report.Latitude, report.Longitude, report.ReporterUID)
 		socketio.EmitMessage("rttmas", "user-report", utils.Jsonalize(report))
@@ -53,7 +53,7 @@ func messageHandler(client mqtt.Client, msg mqtt.Message) {
 		var prr rttma_simulation.PlateRecognitionReport
 		json.Unmarshal(msg.Payload(), &prr)
 		rttmas_binding.RTTMAS_OnPlateReport(int64(prr.Timestep), prr.Lat, prr.Lon, prr.PlateNumberSeen, prr.ReporterUID)
-		rttma_simulation.StorePlateRecognitionReport(prr)
+		// rttma_simulation.StorePlateRecognitionReport(prr) // WIP
 		socketio.EmitMessage("rttmas", "plate-report", utils.Jsonalize(prr))
 		// HandlePlateReport(prr)
 	}
