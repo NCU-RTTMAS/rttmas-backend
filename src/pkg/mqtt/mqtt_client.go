@@ -31,6 +31,7 @@ func GetMqttClient() mqtt.Client {
 
 		if token := mqttClient.Connect(); token.Wait() && token.Error() != nil {
 			logger.Error(token.Error())
+			return
 		}
 
 		logger.Info("MQTT client initialization complete.")
@@ -41,7 +42,7 @@ func GetMqttClient() mqtt.Client {
 
 // Default handler for mqtt connect events
 func handleMqttOnConnect(client mqtt.Client) {
-	client.Subscribe("uplink/#", byte(cfg.GetConfigValueAsInt("MQTT_QOS")), nil)
+	client.Subscribe("traffic/#", byte(cfg.GetConfigValueAsInt("MQTT_QOS")), nil)
 }
 
 // Default handler for mqtt connection lost events

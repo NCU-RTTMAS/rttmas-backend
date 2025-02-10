@@ -2,24 +2,24 @@ version: '3'
 
 services:
 
-  rttmas:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    container_name: rttmas
-    restart: always
-    expose:
-      - 8080
-    ports:
-      - 50051:50051
-    depends_on:
-      - rabbitmq
-      - mongodb
-    volumes:
-      - ./dist:/root/dist
-      - ./.env:/root/.env
-      - ./media:/root/media
-      - /etc/letsencrypt/:/etc/letsencrypt/
+  # rttmas:
+  #   build:
+  #     context: .
+  #     dockerfile: Dockerfile
+  #   container_name: rttmas
+  #   restart: always
+  #   expose:
+  #     - 8080
+  #   ports:
+  #     - 50051:50051
+  #   depends_on:
+  #     - rabbitmq
+  #     - mongodb
+  #   volumes:
+  #     - ./dist:/root/dist
+  #     - ./.env:/root/.env
+  #     - ./media:/root/media
+  #     - /etc/letsencrypt/:/etc/letsencrypt/
 
   nginx:
     image: nginx:1.16.0-alpine
@@ -50,6 +50,8 @@ services:
       - 15672
     ports:
       - "8883:8883"
+      - "1883:1883"
+      - "5672:5672"
       - "15672:15672"
     volumes:
         - /etc/letsencrypt/:/etc/letsencrypt/
@@ -59,13 +61,15 @@ services:
 
 
   redis:
-    image: 'redis:latest'
+    image: 'redis/redis-stack:latest'
+    
     container_name: redis
     restart: always
     environment:
       - ALLOW_EMPTY_PASSWORD=yes
+    command: redis-server --loadmodule /opt/redis-stack/lib/rejson.so --requirepass sOmE_sEcUrE_pAsS
     ports:
-      - 6379:6379
+      - "6379:6379"
     volumes:
       - ./redis/data:/data
       - ./redis/redis.conf:/usr/local/etc/redis/redis.conf
@@ -99,7 +103,7 @@ services:
     container_name: mongo-express
     restart: always
     ports:
-      - 9081:8081
+      - "9081:8081"
     environment:
       ME_CONFIG_BASICAUTH_USERNAME: $MONGODB_USERNAME
       ME_CONFIG_BASICAUTH_PASSWORD: $MONGODB_PASSWORD

@@ -6,6 +6,7 @@ import (
 
 	// "go.mongodb.org/mongo-driver/bson"
 	// "rttma-backend/pkg/models"
+	"rttmas-backend/config"
 	"rttmas-backend/pkg/utils/logger"
 
 	"go.mongodb.org/mongo-driver/mongo"
@@ -33,7 +34,6 @@ var RTTMA_Database *mongo.Database
 
 func initDatatables() {
 	RTTMA_Database = mongoCli.Database("rttma")
-	logger.Info(RTTMA_Database)
 
 	RTTMA_Collections.Vehicles = RTTMA_Database.Collection("vehicles")
 	RTTMA_Collections.PlateRecognitionReports = RTTMA_Database.Collection("plate-recognition-reports")
@@ -45,7 +45,7 @@ func initDatatables() {
 
 func initEngine() {
 	var err error
-	dbString := "mongodb://root:example@localhost:27017"
+	dbString := config.GetConfigValue("MONGODB_URI")
 	// dbString := fmt.Sprintf("mongodb://%s:%s@%s:%s", databaseInfo.Username, databaseInfo.Password, databaseInfo.Server.Host, databaseInfo.Server.Port)
 	clientOptions := options.Client().ApplyURI(dbString)
 

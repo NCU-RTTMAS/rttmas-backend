@@ -14,3 +14,4 @@
 /media
 .DS_Store
 src/rttmas-backend
+src/pkg/web/dist/*

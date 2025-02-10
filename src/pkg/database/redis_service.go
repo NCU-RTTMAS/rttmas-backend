@@ -1,14 +1,16 @@
 package database
 
 import (
+	"context"
 	"fmt"
+	"io/fs"
 	"path/filepath"
 
-	"strings"
-
-	"os"
-	"rttmas-backend/pkg/utils"
+	"embed"
+	// "os"
+	// "rttmas-backend/pkg/utils"
 	"rttmas-backend/pkg/utils/logger"
+	"strings"
 
 	"github.com/redis/go-redis/v9"
 )
@@ -19,12 +21,15 @@ type LuaScript struct {
 	*redis.Script
 }
 
+//go:embed lua/*
+var LuaScriptFS embed.FS
+
 /* Global script tables for storing loaded Lua Scripts*/
 var LuaScripts map[string]*LuaScript
 
 func LoadLuaScripts(scriptName string, path string) error {
-	// Load the Lua script from the external file
-	scriptFile, err := os.ReadFile(path)
+	// Load the Lua script from the embedded filesystem
+	scriptFile, err := LuaScriptFS.ReadFile(path)
 	if err != nil {
 		return fmt.Errorf("failed to read Lua script: %v", err)
 	}
@@ -48,16 +53,15 @@ func LoadLuaScripts(scriptName string, path string) error {
 func InitLuaScripts() error {
 	// Initialize the table for Lua scripts
 	LuaScripts = make(map[string]*LuaScript)
-	luaDir := utils.GetWorkingDirectory() + "/lua" // Directory where Lua scripts are stored
 
-	// Use filepath.WalkDir to traverse all files and directories
-	err := filepath.WalkDir(luaDir, func(path string, d os.DirEntry, err error) error {
+	// Use LuaScriptFS to traverse all embedded files
+	err := fs.WalkDir(LuaScriptFS, "lua", func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
 		// Only load files with .lua extension
 		if !d.IsDir() && strings.HasSuffix(d.Name(), ".lua") {
-			scriptName := strings.TrimSuffix(d.Name(), ".lua")
+			scriptName := strings.TrimSuffix(filepath.Base(d.Name()), ".lua")
 			logger.Debug("Script loaded: " + scriptName)
 
 			// Load the Lua script
@@ -91,4 +95,28 @@ func RedisExecuteLuaScript(name string, keys []string, args ...interface{}) (int
 
 func RedisGeoAdd(key string, latitude float64, longitude float64, reporterUID string) {
 	RedisExecuteLuaScript("geoadd", []string{key}, longitude, latitude, reporterUID)
+}
+func DeleteKeysWithPrefix(prefix string) error {
+	var cursor uint64
+	for {
+		// SCAN command to find keys with the specified prefix
+		keys, nextCursor, err := GetRedis().Scan(context.Background(), cursor, prefix+"*", 100).Result()
+		if err != nil {
+			return err
+		}
+
+		// Delete keys if any are found
+		if len(keys) > 0 {
+			if _, err := GetRedis().Del(context.Background(), keys...).Result(); err != nil {
+				return err
+			}
+		}
+
+		// Check if we've iterated through all keys
+		if nextCursor == 0 {
+			break
+		}
+		cursor = nextCursor
+	}
+	return nil
 }

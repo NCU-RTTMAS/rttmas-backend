@@ -129,6 +129,6 @@ func CreateConsumer(queueName string, handler func(amqp.Delivery)) error {
 		}
 	}()
 
-	logger.Info("[MQTT] Consumer registered for queue: " + queueName)
+	logger.Info("[AMQP] Consumer registered for queue: " + queueName)
 	return nil
 }

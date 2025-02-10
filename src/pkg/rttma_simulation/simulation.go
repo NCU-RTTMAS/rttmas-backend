@@ -60,12 +60,25 @@ type VehicleTrueLocation struct {
 	Lon      float64 `xml:"lon,attr"`
 }
 
+type UserReport struct {
+	ReportTime       int64   `json:"report_time"`       // UNIX timestamp, in seconds
+	ReporterUID      string  `json:"reporter_uid"`      // UUID of user device
+	Latitude         float64 `json:"latitude"`          // GPS latitude
+	Longitude        float64 `json:"longitude"`         // GPS longitude
+	SpeedMS          float64 `json:"speed_ms"`          // GPS speed, in meters per second
+	Heading          float64 `json:"heading"`           // GPS heading, in degrees
+	Plates           string  `json:"plates"`            // Recognized plate numbers, comma-separated
+	ParkingAvailable bool    `json:"parking_available"` // Whether an available parking space has been found
+}
+
 // UserLocationReport represents a location report from a user.
 type UserLocationReport struct {
-	Timestep int     `xml:"timestep,attr"`
+	Timestep int64   `xml:"timestep,attr"`
 	UID      string  `xml:"UID,attr"`
 	Lat      float64 `xml:"lat,attr"`
 	Lon      float64 `xml:"lon,attr"`
+	Speed    float64 `xml:"speed,attr"`
+	Heading  float64 `xml:"heading,attr"`
 }
 
 // PlateRecognitionReport represents a plate recognition report.
@@ -121,7 +134,7 @@ func (r *RTTMAS) WriteToDB() error {
 
 		// Store UserLocationReports
 		for _, ulr := range timestep.UserLocationReports {
-			ulr.Timestep = timestep.TimeSeconds
+			ulr.Timestep = int64(timestep.TimeSeconds)
 			_, err := database.RTTMA_Collections.UserLocationReports.InsertOne(context.Background(), ulr)
 			if err != nil {
 				return fmt.Errorf("failed to insert UserLocationReport: %v", err)

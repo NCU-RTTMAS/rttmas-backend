@@ -1,3 +1,20 @@
+[v0.3.0a] 2025/2/10
+
+Feature: Lua Script Embedding; Web frontend embedding; socket.io support; Map chunk calculation
+- Added map chunk mechanism; Used for collect statistics for map.
+- Embedded Lua scripts in the build phase to avoid including them at execution time.
+- Updated `redis_service.go` to load Lua scripts from the embedded filesystem.
+- Enbedded web frontend to packed binary
+
+
+Bug Fix: File Existence Check
+- Fixed the `fileExists` function to correctly check for the existence of files in the embedded filesystem.
+
+Update: Dockerfile Improvements
+- Improved Dockerfile to copy Lua scripts and credentials correctly.
+- Ensured the build process includes necessary files for execution.
+
+
 [v0.2.5] 2024/11/11
 
 Feature: AMQP Support; Lua Scripts Init; Analysis Module; Admin Backned API

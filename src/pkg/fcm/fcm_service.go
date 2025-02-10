@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"rttmas-backend/pkg/utils/logger"
 
 	"firebase.google.com/go/v4/messaging"
 	"github.com/appleboy/go-fcm"
@@ -22,6 +23,7 @@ func InitializeFCM() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	logger.Info("Firebase Initialization Complete.")
 }
 
 func SendFCMAlert(clientId string, payload string) {
@@ -31,7 +33,6 @@ func SendFCMAlert(clientId string, payload string) {
 		&messaging.Message{
 			Token: token,
 			Data: map[string]string{
-				// "message": fmt.Sprintf("{\"datetime\": \"%d\", \"content\": \"Danger in front\",\"alert_type\": 1 }", time.Now().Unix()),
 				"message": payload,
 			},
 			Android: &messaging.AndroidConfig{

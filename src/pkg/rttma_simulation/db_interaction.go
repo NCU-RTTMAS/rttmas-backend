@@ -10,7 +10,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 
 	"rttmas-backend/pkg/database"
-	"rttmas-backend/pkg/utils"
+	// "rttmas-backend/pkg/utils"
 
 	// "rttma-backend/pkg/utils"
 	"rttmas-backend/pkg/utils/logger"
@@ -174,12 +174,12 @@ func StorePlateRecognitionReport(prr PlateRecognitionReport) error {
 	return nil
 }
 
-func StoreUserLocationReport(ulr UserLocationReport) error {
+func StoreUserLocationReport(ulr UserReport) error {
 	_, err := database.RTTMA_Collections.UserLocationReports.InsertOne(context.Background(), ulr)
-	database.GetRedis().GeoAdd(context.Background(), fmt.Sprintf("user_location_report:%s", ulr.UID), &redis.GeoLocation{
-		Name:      fmt.Sprintf("%d", ulr.Timestep),
-		Latitude:  ulr.Lat,
-		Longitude: ulr.Lon,
+	database.GetRedis().GeoAdd(context.Background(), fmt.Sprintf("user_location_report:%s", ulr.ReporterUID), &redis.GeoLocation{
+		Name:      fmt.Sprintf("%d", ulr.ReportTime),
+		Latitude:  ulr.Latitude,
+		Longitude: ulr.Longitude,
 	})
 	// exists, err := database.GetRedis().Exists(context.Background(), fmt.Sprintf("basic_info:%s", ulr.UID)).Result()
 	// if err != nil {
@@ -195,7 +195,7 @@ func StoreUserLocationReport(ulr UserLocationReport) error {
 
 	// database.GetRedis().JSONSet(context.Background(), fmt.Sprintf("basic_info:%s", ulr.UID), "$.LatestTimestep", fmt.Sprintf("%d", ulr.Timestep))
 
-	database.GetRedis().Expire(context.Background(), fmt.Sprintf("user_location_report:%s", ulr.UID), 30*time.Second)
+	database.GetRedis().Expire(context.Background(), fmt.Sprintf("user_location_report:%s", ulr.ReporterUID), 30*time.Second)
 	if err != nil {
 		return fmt.Errorf("failed to insert UserLocationReport: %v", err)
 	}
@@ -233,12 +233,5 @@ func GetTracksByPlateNumber(plate string) interface{} {
 	if err != nil {
 		logger.Error(err)
 	}
-	logger.Info(utils.Jsonalize(v))
-	// logger.Info(v.Tracks)
-	// var Locs [][2]float32
-	// for _, track := range v.Tracks {
-	// 	// latLngPair :=
-	// 	Locs = append(Locs, [2]float32{track.Location.Latitude, track.Location.Longitude})
-	// }
 	return v
 }

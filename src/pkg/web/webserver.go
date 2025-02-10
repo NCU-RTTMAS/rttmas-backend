@@ -1,6 +1,9 @@
 package web
 
 import (
+	// "net/http"
+	"embed"
+	"io/fs"
 	"net/http"
 	"sync"
 
@@ -8,21 +11,28 @@ import (
 
 	cfg "rttmas-backend/config"
 	"rttmas-backend/pkg/utils/logger"
+	"rttmas-backend/pkg/web/socketio"
 )
 
 var ginEngine *gin.Engine
 var once sync.Once
 
+//go:embed dist/*
+var embeddedFiles embed.FS
+
 func GetGinEngine() *gin.Engine {
 	once.Do(func() {
-		gin.SetMode(cfg.GetConfigValue("GIN_MODE"))
+		// gin.SetMode(cfg.GetConfigValue("GIN_MODE"))
+		gin.SetMode("debug")
 
 		ginEngine = gin.Default()
 
 		// Add security headers to protect the API
+
 		ginEngine.Use(func(c *gin.Context) {
 			if c.Request.Host != cfg.GetConfigValue("FULL_API_URL") {
-				c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "Invalid host header"})
+				// logger.Info(c.Request.Host)
+				// c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "Invalid host header"})
 				return
 			}
 			c.Header("X-Frame-Options", "DENY")
@@ -39,8 +49,36 @@ func GetGinEngine() *gin.Engine {
 		ginEngine.GET("/user/:uid", GetUserByUIDHandler)
 		ginEngine.GET("/vehicle/:plate", GetSingleVehicleHandler)
 		ginEngine.GET("/vehicles", GetVehiclesHandler)
-
+		ginEngine.GET("/socket.io/*any", gin.WrapH(socketio.GetServerInstance()))
+		ginEngine.POST("/socket.io/*any", gin.WrapH(socketio.GetServerInstance()))
 		logger.Info("Gin web server initialization complete.")
+		// ginEngine.Use(SPAMiddleware("/", embeddedFiles))
+		SPAHandler().Register(ginEngine)
+		// ginEngine.NoRoute(func(c *gin.Context) {
+		// 	distFS, err := DistFS()
+		// 	if err != nil {
+		// 		logger.Error("Error accessing embedded files:", err)
+		// 		c.Status(http.StatusInternalServerError)
+		// 		return
+		// 	}
+		// 	filePath := c.Request.URL.Path
+		// 	_, err = distFS.Open(filePath)
+		// 	if err != nil {
+		// 		// If the requested file is not found, serve the main page (index.html)
+		// 		filePath = "index.html"
+		// 	}
+		// 	c.Header("Cache-Control", "no-cache, no-store, must-revalidate")
+		// 	c.Header("Pragma", "no-cache")
+		// 	c.Header("Expires", "0")
+		// 	http.StripPrefix("/", http.FileServer(distFS)).ServeHTTP(c.Writer, c.Request)
+		// })
 	})
 	return ginEngine
+}
+func DistFS() (http.FileSystem, error) {
+	subFS, err := fs.Sub(embeddedFiles, "dist")
+	if err != nil {
+		return nil, err
+	}
+	return http.FS(subFS), nil
 }
