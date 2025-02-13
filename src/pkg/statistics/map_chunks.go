@@ -7,6 +7,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"rttmas-backend/pkg/database"
+	"rttmas-backend/pkg/utils/logger"
+
 	// "rttmas-backend/pkg/utils/logger"
 
 	"github.com/mmcloughlin/geohash"
@@ -105,9 +107,23 @@ func CollectMapTrafficVectors(reportTime int64, latitude float64, longitude floa
 	// Store the updated chunk back to the database
 	database.GetRedis().JSONSet(context.Background(), fmt.Sprintf("map_chunks:%s", hash), "$", currentChunk)
 }
-func GetAverageSpeed(geohash string) {
 
+func GetAverageSpeed(geohash string) map[Direction]DirectionInfo {
+	result, err := database.GetRedis().JSONGet(context.Background(), fmt.Sprintf("map_chunks:%s", geohash), "$.velocity_by_direction").Result()
+	if err != nil || result == "" {
+		logger.Error(err)
+		return map[Direction]DirectionInfo{}
+	}
+	speedMap := []map[Direction]DirectionInfo{}
+	err = json.Unmarshal([]byte(result), &speedMap)
+	if err != nil {
+		logger.Error(err)
+	}
+	logger.Info(speedMap)
+
+	return speedMap[0]
 }
+
 func PruneMapChunks() {
 
 }

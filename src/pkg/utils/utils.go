@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"rttmas-backend/pkg/utils/logger"
+	"strings"
 )
 
 func Jsonalize(v any) string {
@@ -25,4 +26,19 @@ func GetWorkingDirectory() string {
 		logger.Error(err)
 	}
 	return dir
+}
+
+func ParseCommaSeparatedString(input string) []string {
+	// Trim any leading or trailing whitespace
+	input = strings.TrimSpace(input)
+
+	// Split the string by commas
+	parts := strings.Split(input, ",")
+
+	// Trim whitespace from each part
+	for i, part := range parts {
+		parts[i] = strings.TrimSpace(part)
+	}
+
+	return parts
 }

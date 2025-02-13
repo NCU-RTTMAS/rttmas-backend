@@ -37,7 +37,7 @@ func GetGinEngine() *gin.Engine {
 				return
 			}
 			c.Header("X-Frame-Options", "DENY")
-			c.Header("Access-Control-Allow-Origin", "*")
+			c.Header("Access-Control-Allow-Origin", c.Request.Header.Get("Origin"))
 			// c.Header("Content-Security-Policy", "default-src 'self'; connect-src *; font-src *; script-src-elem * 'unsafe-inline'; img-src * data:; style-src * 'unsafe-inline';")
 			c.Header("X-XSS-Protection", "1; mode=block")
 			c.Header("Strict-Transport-Security", "max-age=31536000; includeSubDomains; preload")
@@ -50,6 +50,7 @@ func GetGinEngine() *gin.Engine {
 		// ginEngine.GET("/user/:uid", GetUserByUIDHandler)
 		// ginEngine.GET("/vehicle/:plate", GetSingleVehicleHandler)
 		// ginEngine.GET("/vehicles", GetVehiclesHandler)
+		setAPIRoutes(ginEngine)
 		ginEngine.GET("/socket.io/*any", gin.WrapH(socketio.GetServerInstance()))
 		ginEngine.POST("/socket.io/*any", gin.WrapH(socketio.GetServerInstance()))
 		logger.Info("Gin web server initialization complete.")
@@ -90,6 +91,8 @@ func setAPIRoutes(ginEngine *gin.Engine) {
 	// ginEngine.GET("/vehicle/:plate", GetSingleVehicleHandler)
 	// ginEngine.GET("/vehicles", GetVehiclesHandler)
 
-	ginEngine.GET("/playback", rttmas_api.QueryObjectPath)
-	ginEngine.GET("/playback/objects", rttmas_api.QueryAvailableObjects)
+	apis := ginEngine.Group("/api/v1")
+	apis.GET("/velocity", rttmas_api.GetAverageSpeed)
+	apis.GET("/playback", rttmas_api.QueryObjectPath)
+	apis.GET("/playback/objects", rttmas_api.QueryAvailableObjects)
 }

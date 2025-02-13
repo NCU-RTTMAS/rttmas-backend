@@ -26,7 +26,7 @@ local function get_velocity(key, terms)
     end
 
     -- Return the average velocity
-    return  3.6 * total_path / total_timespan 
+    return tostring(total_path / total_timespan) -- in meters per second
 end
 
 -- Call the function with the provided ZSET key and timespan

@@ -21,9 +21,9 @@ import (
 )
 
 type AnalysisResult struct {
-	Heading        int64
-	Velocity       int64
-	LatestTimestep int64
+	Heading          float64 `json:"heading"`
+	SpeedMS          float64 `json:"speed_ms"`
+	LatestReportTime int64   `json:"latest_report_time"`
 }
 
 func StartAnalysisModule() {
@@ -76,12 +76,12 @@ func processAnalysis(ctx context.Context, redisClient *redis.Client) error {
 				logger.Error(err)
 			}
 			if len(vehInfo) != 0 {
-				logger.Info("p_locations:" + strconv.Itoa(int(vehInfo[0].LatestTimestep)))
-				result, err := rttmas_db.GetRedis().GeoPos(context.Background(), "p_locations:"+string(vehInfo[0].LatestTimestep), plate).Result()
+				logger.Info("p_locations:" + strconv.Itoa(int(vehInfo[0].LatestReportTime)))
+				_, err := rttmas_db.GetRedis().GeoPos(context.Background(), "p_locations:"+string(vehInfo[0].LatestReportTime), plate).Result()
 				if err != nil {
 					logger.Error(err)
 				}
-				logger.Info(result)
+				// logger.Info(result)
 			}
 			// logger.Info(vehInfo)
 
@@ -106,6 +106,7 @@ func processUser(ctx context.Context, redisClient *redis.Client, userWithPrefix 
 	if err != nil {
 		return fmt.Errorf("error calculating heading: %w", err)
 	}
+	// convert to float
 
 	velocity, err := rttmas_db.RedisExecuteLuaScript("get_velocity", []string{userWithPrefix}, 5)
 	if err != nil && err.Error() != redis.Nil.Error() {
@@ -114,11 +115,25 @@ func processUser(ctx context.Context, redisClient *redis.Client, userWithPrefix 
 
 	if heading != nil && velocity != nil {
 		result := AnalysisResult{
-			Heading:  heading.(int64),
-			Velocity: velocity.(int64),
+			Heading: func() float64 {
+				h, err := strconv.ParseFloat(heading.(string), 64)
+				if err != nil {
+					logger.Error("Error parsing heading:", err)
+					return 0
+				}
+				return h
+			}(),
+			SpeedMS: func() float64 {
+				h, err := strconv.ParseFloat(velocity.(string), 64)
+				if err != nil {
+					logger.Error("Error parsing heading:", err)
+					return 0
+				}
+				return h
+			}(), // WIP, need to convert to float
 		}
 
-		if velocity != nil && velocity.(int64) > 40 {
+		if result.SpeedMS > 10 {
 			logger.Warning(user, "is speeding")
 		}
 
@@ -135,12 +150,12 @@ func processUser(ctx context.Context, redisClient *redis.Client, userWithPrefix 
 func updateUserInfo(ctx context.Context, redisClient *redis.Client, user string, result AnalysisResult) error {
 	basicInfoKey := fmt.Sprintf("basic_info:%s", user)
 
-	_, err := redisClient.JSONSet(ctx, basicInfoKey, "$.Velocity", result.Velocity).Result()
+	_, err := redisClient.JSONSet(ctx, basicInfoKey, "$.speed_ms", result.SpeedMS).Result()
 	if err != nil {
 		return fmt.Errorf("error setting velocity: %w", err)
 	}
 
-	_, err = redisClient.JSONSet(ctx, basicInfoKey, "$.Heading", result.Heading).Result()
+	_, err = redisClient.JSONSet(ctx, basicInfoKey, "$.heading", result.Heading).Result()
 	if err != nil {
 		return fmt.Errorf("error setting heading: %w", err)
 	}
@@ -159,31 +174,31 @@ func getAllSortedSetKeys(ctx context.Context, rdb *redis.Client, pattern string)
 		var err error
 		var batchKeys []string
 
-// 		// SCAN with count 0 lets Redis decide the batch size, and TYPE zset filters for sorted sets
-// 		batchKeys, cursor, err = rdb.ScanType(ctx, cursor, pattern, 0, "zset").Result()
-// 		if err != nil {
-// 			return nil, err
-// 		}
+		// SCAN with count 0 lets Redis decide the batch size, and TYPE zset filters for sorted sets
+		batchKeys, cursor, err = rdb.ScanType(ctx, cursor, pattern, 0, "zset").Result()
+		if err != nil {
+			return nil, err
+		}
 
-// 		// Append the found keys to the result list
-// 		keys = append(keys, batchKeys...)
+		// Append the found keys to the result list
+		keys = append(keys, batchKeys...)
 
-// 		// Exit when the cursor is 0, meaning the scan is complete
-// 		if cursor == 0 {
-// 			break
-// 		}
-// 	}
+		// Exit when the cursor is 0, meaning the scan is complete
+		if cursor == 0 {
+			break
+		}
+	}
 
 	return keys, nil
 }
 
 type BasicInfo struct {
-	LatestTimestep int `json:"LatestTimestep"`
-	Velocity       int `json:"Velocity"`
-	Heading        int `json:"Heading"`
+	LatestReportTime int     `json:"latest_report_time"`
+	SpeedMS          float64 `json:"speed_ms"`
+	Heading          float64 `json:"heading"`
 }
 
-func FetchTopKeysByVelocity(ctx context.Context, rdb *redis.Client, keyPrefix string) (map[string]int, error) {
+func FetchTopKeysByVelocity(ctx context.Context, rdb *redis.Client, keyPrefix string) (map[string]float64, error) {
 	// Fetch all keys matching the prefix
 	keys, err := rdb.Keys(ctx, keyPrefix+"*").Result()
 	if err != nil {
@@ -192,8 +207,8 @@ func FetchTopKeysByVelocity(ctx context.Context, rdb *redis.Client, keyPrefix st
 
 	// Map to hold key and velocity
 	data := make([]struct {
-		Plate    string
-		Velocity int
+		Plate   string  `json:"plate"`
+		SpeedMS float64 `json:"speed_ms"`
 	}, 0)
 
 	// Iterate over keys and fetch their values
@@ -214,14 +229,14 @@ func FetchTopKeysByVelocity(ctx context.Context, rdb *redis.Client, keyPrefix st
 		plate := key[len(keyPrefix):]
 
 		data = append(data, struct {
-			Plate    string
-			Velocity int
-		}{Plate: plate, Velocity: info.Velocity})
+			Plate   string  `json:"plate"`
+			SpeedMS float64 `json:"speed_ms"`
+		}{Plate: plate, SpeedMS: info.SpeedMS})
 	}
 
 	// Sort data by velocity in descending order
 	sort.Slice(data, func(i, j int) bool {
-		return data[i].Velocity > data[j].Velocity
+		return data[i].SpeedMS > data[j].SpeedMS
 	})
 
 	// Calculate the top 10%
@@ -229,14 +244,14 @@ func FetchTopKeysByVelocity(ctx context.Context, rdb *redis.Client, keyPrefix st
 
 	// Prepare the result as a slice of maps
 	// var topEntries map[string]int
-	topEntries := make(map[string]int, topCount)
+	topEntries := make(map[string]float64, topCount)
 	// topEntries := make(map[string]int, 0, topCount)
 	for _, entry := range data[:topCount] {
-		if entry.Velocity < 20 {
+		if entry.SpeedMS < 20 {
 			continue
 		}
 		// topEntries = append(topEntries, map[string]int{entry.Plate: entry.Velocity})
-		topEntries[entry.Plate] = entry.Velocity
+		topEntries[entry.Plate] = entry.SpeedMS
 
 	}
 

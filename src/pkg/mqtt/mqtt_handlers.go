@@ -2,8 +2,8 @@ package mqtt
 
 import (
 	"encoding/json"
-	"fmt"
-	cfg "rttmas-backend/config"
+	// "fmt"
+	// cfg "rttmas-backend/config"
 	"strings"
 
 	// "rttmas-backend/pkg/analysis"
@@ -23,11 +23,11 @@ import (
 // Example topic: uplink/user-report/<UID>
 func messageHandler(client mqtt.Client, msg mqtt.Message) {
 
-	if cfg.GetConfigValue("GO_ENV") == "development" {
-		logger.Debug(fmt.Sprintf("Message received from %s:\n%s", string(msg.Topic()), string(msg.Payload())))
-	} else {
-		logger.Debug(fmt.Sprintf("Message received from %s", string(msg.Topic())))
-	}
+	// if cfg.GetConfigValue("GO_ENV") == "development" {
+	// 	logger.Debug(fmt.Sprintf("Message received from %s:\n%s", string(msg.Topic()), string(msg.Payload())))
+	// } else {
+	// 	logger.Debug(fmt.Sprintf("Message received from %s", string(msg.Topic())))
+	// }
 
 	topicParts := strings.Split(msg.Topic(), "/")
 
@@ -45,17 +45,45 @@ func messageHandler(client mqtt.Client, msg mqtt.Message) {
 	case "user-report":
 		var report rttma_simulation.UserReport
 		json.Unmarshal(msg.Payload(), &report)
-		// rttma_simulation.StoreUserLocationReport(report) // WIP
+		rttma_simulation.StoreUserLocationReport(report)
 		HandleUserLocationReport(report, report.ReporterUID)
 		rttmas_binding.RTTMAS_OnUserLocationReport(int64(report.ReportTime), report.Latitude, report.Longitude, report.ReporterUID)
 		socketio.EmitMessage("rttmas", "user-report", utils.Jsonalize(report))
-	case "plate-report":
-		var prr rttma_simulation.PlateRecognitionReport
-		json.Unmarshal(msg.Payload(), &prr)
-		rttmas_binding.RTTMAS_OnPlateReport(int64(prr.Timestep), prr.Lat, prr.Lon, prr.PlateNumberSeen, prr.ReporterUID)
-		// rttma_simulation.StorePlateRecognitionReport(prr) // WIP
-		socketio.EmitMessage("rttmas", "plate-report", utils.Jsonalize(prr))
-		// HandlePlateReport(prr)
+		plates := utils.ParseCommaSeparatedString(report.Plates)
+		for _, plate := range plates {
+			rttma_simulation.StorePlateRecognitionReport(plate, report)
+			rttmas_binding.RTTMAS_OnPlateReport(int64(report.ReportTime), report.Latitude, report.Longitude, plate, report.ReporterUID)
+			plateBasicInfo := rttma_simulation.GetBasicInfoByPlate(plate)
+			logger.Debug("basic_info: ", plateBasicInfo)
+
+			// create a struct for plate report
+			type PlateReport struct {
+				Timestep    int64   `json:"timestep"`
+				Lat         float64 `json:"lat"`
+				Lon         float64 `json:"lon"`
+				PlateNumber string  `json:"plate_number"`
+				SpeedMS     float64 `json:"speed_ms"`
+				Heading     float64 `json:"heading"`
+			}
+			plateReport := PlateReport{
+				Timestep:    int64(report.ReportTime),
+				Lat:         report.Latitude,
+				Lon:         report.Longitude,
+				PlateNumber: plate,
+				SpeedMS:     plateBasicInfo["speed_ms"],
+				Heading:     plateBasicInfo["heading"],
+			}
+			socketio.EmitMessage("rttmas", "plate-report", utils.Jsonalize(plateReport))
+
+		}
+
+		// case "plate-report":
+		// 	var prr rttma_simulation.PlateRecognitionReport
+		// 	json.Unmarshal(msg.Payload(), &prr)
+		// 	rttmas_binding.RTTMAS_OnPlateReport(int64(prr.Timestep), prr.Lat, prr.Lon, prr.PlateNumberSeen, prr.ReporterUID)
+		// 	// rttma_simulation.StorePlateRecognitionReport(prr) // WIP
+		// 	socketio.EmitMessage("rttmas", "plate-report", utils.Jsonalize(prr))
+		// 	// HandlePlateReport(prr)
 	}
 }
 

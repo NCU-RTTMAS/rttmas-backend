@@ -18,7 +18,7 @@ local function calculate_heading(lat1, lon1, lat2, lon2)
     -- Convert from radians to degrees and normalize to 0-360 range
     heading = (heading * 180 / math.pi + 360) % 360
 
-    return heading
+    return tostring(heading)
 end
 
 -- Retrieve geospatial positions from Redis
