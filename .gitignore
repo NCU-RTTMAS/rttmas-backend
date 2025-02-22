@@ -9,10 +9,10 @@ src/pkg/simulation/sumo-scenarios
 
 */docker-volume-data
 /redis/data
-/dist
+/src/dist
 /media
 .DS_Store
-src/rttmas-backend
+src/rttmas-backend*
 src/pkg/web/dist/*
 
 /__*

@@ -49,7 +49,6 @@ services:
     ports:
       - "1883:1883"
       - "8883:8883"
-      - "1883:1883"
       - "5672:5672"
       - "15672:15672"
     volumes:
@@ -66,7 +65,7 @@ services:
     restart: always
     environment:
       - ALLOW_EMPTY_PASSWORD=yes
-    command: redis-server --loadmodule /opt/redis-stack/lib/rejson.so --requirepass sOmE_sEcUrE_pAsS
+    command: redis-server --loadmodule /opt/redis-stack/lib/rejson.so --loadmodule /opt/redis-stack/lib/redisearch.so --requirepass sOmE_sEcUrE_pAsS
     ports:
       - "6379:6379"
     volumes:

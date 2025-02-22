@@ -4,19 +4,20 @@ import (
 	"context"
 	"os"
 
+	rttmas_analysis "rttmas-backend/analysis"
+	rttmas_binding "rttmas-backend/binding"
 	rttmas_cfg "rttmas-backend/config"
-	rttmas_analysis "rttmas-backend/pkg/analysis"
-	rttmas_binding "rttmas-backend/pkg/binding"
-	"rttmas-backend/pkg/cron"
-	rttmas_db "rttmas-backend/pkg/database"
-	rttmas_fcm "rttmas-backend/pkg/fcm"
-	rttmas_models "rttmas-backend/pkg/models"
-	rttmas_mqtt "rttmas-backend/pkg/mqtt"
+	"rttmas-backend/cron"
+	rttmas_fcm "rttmas-backend/fcm"
+	rttmas_models "rttmas-backend/models"
+	rttmas_mongo "rttmas-backend/mongo"
+	rttmas_mqtt "rttmas-backend/mqtt"
+	rttmas_redis "rttmas-backend/redis"
 
-	rttmas_simulation "rttmas-backend/pkg/simulation"
-	rttmas_web "rttmas-backend/pkg/web"
+	rttmas_simulation "rttmas-backend/simulation"
+	rttmas_web "rttmas-backend/web"
 
-	"rttmas-backend/pkg/utils/logger"
+	"rttmas-backend/utils/logger"
 
 	"github.com/joho/godotenv"
 	"golang.org/x/sync/errgroup"
@@ -37,9 +38,9 @@ func initializeConfig() {
 }
 
 func initializeDatabase() {
-	redis := rttmas_db.GetRedis()
-	rttmas_db.GetMongoClient()
-	rttmas_db.InitLuaScripts()
+	redis := rttmas_redis.GetRedis()
+	rttmas_mongo.GetMongoClient()
+	rttmas_redis.InitLuaScripts()
 	rttmas_mqtt.GetMqttClient()
 	// rttmas_mqtt.Init()
 	cron.Init()
@@ -99,7 +100,7 @@ func initializeFCM() {
 }
 
 func testFunction() {
-	r, _ := rttmas_db.MongoGetUniqueFieldValues[rttmas_models.UserData](rttmas_db.UserDataCollection, "uid", "u__5")
+	r, _ := rttmas_mongo.MongoGetUniqueFieldValues[rttmas_models.UserData](rttmas_mongo.UserDataCollection, "uid", "u__5")
 	logger.Info(r)
 }
 
